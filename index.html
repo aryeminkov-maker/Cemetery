@@ -144,6 +144,12 @@ body{
 .suggestion-item .loc{color:var(--muted);font-size:12px;}
 
 .hero-actions{margin-top:26px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+.home-footer-link{text-align:center;margin-top:22px;}
+.home-footer-link a{
+  color:var(--muted);font-size:12.5px;text-decoration:none;
+  border-bottom:1px solid var(--stone-line);padding-bottom:1px;transition:.2s;
+}
+.home-footer-link a:hover{color:var(--candle);border-color:var(--candle);}
 .btn-ghost{
   background:transparent;border:1px solid var(--stone-line);color:var(--limestone);
   padding:11px 22px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:14px;
@@ -421,6 +427,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         </button>
       </div>
     </div>
+    <div class="home-footer-link">
+      <a href="https://obit.bet-el.muni.il" target="_blank" rel="noopener">יצירת מודעת אבל מותאמת אישית</a>
+    </div>
   </div>
 
   <!-- ===================== RESULTS ===================== -->
@@ -586,7 +595,6 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <div id="toast" class="toast"></div>
   </div>
 
-  <footer>פרוטוטייפ להדגמה • הנתונים המוצגים הם נתוני דמו בלבד</footer>
 </div>
 
 
@@ -1123,9 +1131,26 @@ function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function toHebrewNumeral(num){
+  if(!num || num<1) return '';
+  const vals = [
+    [400,'ת'],[300,'ש'],[200,'ר'],[100,'ק'],[90,'צ'],[80,'פ'],[70,'ע'],[60,'ס'],
+    [50,'נ'],[40,'מ'],[30,'ל'],[20,'כ'],[10,'י'],[9,'ט'],[8,'ח'],[7,'ז'],[6,'ו'],[5,'ה'],[4,'ד'],[3,'ג'],[2,'ב'],[1,'א']
+  ];
+  let n = num, letters = '';
+  while(n > 0){
+    if(n === 15){ letters += 'טו'; break; }
+    if(n === 16){ letters += 'טז'; break; }
+    for(const [v,l] of vals){
+      if(n >= v){ letters += l; n -= v; break; }
+    }
+  }
+  return letters.length > 1 ? letters.slice(0,-1) + '"' + letters.slice(-1) : letters + "'";
+}
+
 function versesHtml(verses, startNum){
   return verses.map((v,i) =>
-    `<span class="v"><span class="vnum">${startNum+i}</span>${escapeHtml(v)}</span> `
+    `<span class="v"><span class="vnum">${toHebrewNumeral(startNum+i)}</span>${escapeHtml(v)}</span> `
   ).join('');
 }
 
@@ -1360,6 +1385,7 @@ function generate(values){
   buildSheet(values);
   els.formSection.classList.add('hidden');
   els.toolbar.classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 els.form.addEventListener('submit', (e) => {
@@ -1372,6 +1398,7 @@ document.getElementById('editBtn').addEventListener('click', () => {
   els.formSection.classList.remove('hidden');
   els.toolbar.classList.add('hidden');
   els.sheet.innerHTML = '';
+  window.scrollTo({top:0, behavior:'smooth'});
 });
 
 /* --- font size --- */
