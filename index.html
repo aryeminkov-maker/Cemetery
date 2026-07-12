@@ -156,6 +156,12 @@ body{
   border-bottom:1px solid var(--stone-line);padding-bottom:1px;transition:.2s;
 }
 .home-footer-link a:hover{color:var(--candle);border-color:var(--candle);}
+.prayer-direct-link{text-align:center;margin-top:26px;}
+.prayer-direct-link a{
+  color:var(--limestone);font-size:16px;font-weight:600;text-decoration:none;
+  border-bottom:1.5px solid var(--candle);padding-bottom:2px;transition:.2s;
+}
+.prayer-direct-link a:hover{color:var(--candle);}
 .btn-ghost{
   background:transparent;border:1px solid var(--stone-line);color:var(--limestone);
   padding:11px 22px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:14px;
@@ -253,6 +259,21 @@ body{
   padding:12px 16px;font-size:12px;color:var(--muted);
   background:var(--stone);border-top:1px solid var(--stone-line);line-height:1.6;
 }
+.block-holder{
+  border:1px solid var(--stone-line);border-radius:var(--radius);
+  overflow:hidden;background:var(--ink-2);
+}
+.block-picker{
+  display:flex;flex-wrap:wrap;gap:8px;padding:14px;
+  background:var(--stone);border-bottom:1px solid var(--stone-line);
+}
+.block-picker-btn{
+  background:var(--ink);border:1px solid var(--stone-line);color:var(--limestone);
+  padding:8px 18px;border-radius:999px;cursor:pointer;font-family:'Heebo';font-size:13px;transition:.2s;
+}
+.block-picker-btn:hover{border-color:var(--candle);}
+.block-picker-btn.active{background:var(--candle);color:#FFFFFF;border-color:var(--candle);}
+.block-svg-wrap{padding:10px;}
 .grave-dot{cursor:pointer;transition:.15s;}
 .grave-dot:hover{filter:brightness(1.3);}
 .grave-dot.highlight{animation:pulse 1.8s infinite;}
@@ -262,12 +283,13 @@ body{
   100%{filter:drop-shadow(0 0 0px var(--candle-glow));}
 }
 .map-popup{
-  position:absolute;bottom:16px;right:16px;left:16px;
+  position:fixed;bottom:16px;right:16px;left:16px;
   max-width:340px;margin:0 auto;
   background:var(--stone);border:1px solid var(--candle);
   border-radius:var(--radius);padding:16px 18px;
   box-shadow:0 14px 30px rgba(0,0,0,0.5);
   display:none;
+  z-index:60;
 }
 .map-popup.show{display:block;animation:fade .25s ease;}
 .map-popup .close{
@@ -411,7 +433,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <p>הזינו את שם הנפטר/ת כדי לקבל מיקום מדויק בבית העלמין</p>
       <div class="search-wrap">
         <div class="search-box">
-          <input type="text" id="search-input" placeholder="לדוגמה: משה כהן" autocomplete="off">
+          <input type="text" id="search-input" placeholder="לדוגמה: דוד כהן" autocomplete="off">
           <button class="search-icon-btn" onclick="performSearch()" aria-label="חיפוש">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#1B211E" stroke-width="2.2"/><line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#1B211E" stroke-width="2.2" stroke-linecap="round"/></svg>
           </button>
@@ -424,6 +446,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           צפייה במפת בית העלמין
         </button>
       </div>
+    </div>
+    <div class="prayer-direct-link">
+      <a href="#" onclick="goPrayerDirect(); return false;">סדר תפילה על הקבר</a>
     </div>
     <div class="home-footer-link">
       <a href="https://obit.bet-el.muni.il" target="_blank" rel="noopener">יצירת מודעת אבל מותאמת אישית</a>
@@ -478,6 +503,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     </div>
     <div class="map-mode-tabs">
       <button class="map-mode-tab active" id="tab-schematic" onclick="setMapMode('schematic')">תרשים סכמטי</button>
+      <button class="map-mode-tab" id="tab-blocks" onclick="setMapMode('blocks')">לפי חלקות</button>
       <button class="map-mode-tab" id="tab-aerial" onclick="setMapMode('aerial')">תצלום אוויר</button>
     </div>
     <div class="legend" id="map-legend">
@@ -487,14 +513,18 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     </div>
     <div class="full-map-holder" id="schematic-holder">
       <div class="full-map-scroll" id="full-map-scroll"></div>
-      <div class="map-popup" id="map-popup">
-        <button class="close" onclick="closePopup()">✕</button>
-        <div class="pname" id="pop-name"></div>
-        <div class="ploc" id="pop-loc"></div>
-        <div style="display:flex;gap:14px;margin-top:10px;">
-          <span class="plink" id="pop-link" onclick="">לצפייה בכל הפרטים ←</span>
-          <span class="plink" id="pop-psalms-link" onclick="openPrayerSheet(currentHighlight)">דף תפילה ←</span>
-        </div>
+    </div>
+    <div class="block-holder" id="block-holder" style="display:none;">
+      <div class="block-picker" id="block-picker"></div>
+      <div class="block-svg-wrap" id="block-svg-wrap"></div>
+    </div>
+    <div class="map-popup" id="map-popup">
+      <button class="close" onclick="closePopup()">✕</button>
+      <div class="pname" id="pop-name"></div>
+      <div class="ploc" id="pop-loc"></div>
+      <div style="display:flex;gap:14px;margin-top:10px;">
+        <span class="plink" id="pop-link" onclick="">לצפייה בכל הפרטים ←</span>
+        <span class="plink" id="pop-psalms-link" onclick="openPrayerSheet(currentHighlight)">דף תפילה ←</span>
       </div>
     </div>
     <div class="aerial-holder" id="aerial-holder" style="display:none;">
@@ -846,26 +876,74 @@ function goHome(){
 function goMap(){
   currentHighlight = null;
   renderFullMap();
+  setMapMode('schematic');
   showView('view-map');
 }
 function goMapFocused(){
   renderFullMap();
+  setMapMode('schematic');
   showView('view-map');
   setTimeout(()=>openPopup(currentHighlight),300);
 }
 function setMapMode(mode){
   const isSchematic = mode==='schematic';
+  const isAerial = mode==='aerial';
+  const isBlocks = mode==='blocks';
   document.getElementById('tab-schematic').classList.toggle('active', isSchematic);
-  document.getElementById('tab-aerial').classList.toggle('active', !isSchematic);
+  document.getElementById('tab-aerial').classList.toggle('active', isAerial);
+  document.getElementById('tab-blocks').classList.toggle('active', isBlocks);
   document.getElementById('schematic-holder').style.display = isSchematic ? 'block' : 'none';
-  document.getElementById('aerial-holder').style.display = isSchematic ? 'none' : 'block';
+  document.getElementById('aerial-holder').style.display = isAerial ? 'block' : 'none';
+  document.getElementById('block-holder').style.display = isBlocks ? 'block' : 'none';
   document.getElementById('zoom-controls').style.display = isSchematic ? 'flex' : 'none';
-  document.getElementById('map-legend').style.display = isSchematic ? 'flex' : 'none';
+  document.getElementById('map-legend').style.display = isAerial ? 'none' : 'flex';
   document.getElementById('map-subtitle').textContent = isSchematic
     ? 'לחצו על נקודה כדי לצפות בפרטי הקבר'
-    : 'תצלום אוויר להתמצאות כללית בשטח';
+    : isAerial
+    ? 'תצלום אוויר להתמצאות כללית בשטח'
+    : 'בחרו חלקה לצפייה מוגדלת';
   if(!isSchematic) closePopup();
+  if(isBlocks){
+    if(!document.getElementById('block-picker').children.length) initBlockPicker();
+    if(!currentBlockKey) setBlockView(Object.keys(BLOCK_LAYOUT)[0]);
+  }
 }
+
+function initBlockPicker(){
+  document.getElementById('block-picker').innerHTML = Object.keys(BLOCK_LAYOUT).map(key =>
+    `<button class="block-picker-btn" data-block="${key}" onclick="setBlockView('${key}')">חלקה ${key}</button>`
+  ).join('');
+}
+
+function setBlockView(key){
+  currentBlockKey = key;
+  document.querySelectorAll('.block-picker-btn').forEach(b=>b.classList.toggle('active', b.dataset.block===key));
+  document.getElementById('block-svg-wrap').innerHTML = buildBlockSVG(key, currentHighlight);
+}
+
+function buildBlockSVG(blockKey, highlightId){
+  const dim = blockDims[blockKey];
+  const localCell = 46;
+  const padding = 24;
+  const w = dim.cols*localCell + padding*2;
+  const h = dim.rows*localCell + padding*2 + 26;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">`;
+  svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="#F1EDE0"/>`;
+  svg += `<text x="${w/2}" y="24" fill="#6E7A61" font-size="16" font-family="Frank Ruhl Libre, serif" text-anchor="middle">${BLOCK_LAYOUT[blockKey].label}</text>`;
+  const originY = 38;
+  graves.filter(g=>g.block===blockKey).forEach(g=>{
+    const x = padding + g.col*localCell + localCell/2;
+    const y = originY + g.rowi*localCell + localCell/2;
+    const isHi = g.id === highlightId;
+    let fill = g.status==='reserved' ? '#D9C79A' : '#7C9268';
+    if(isHi) fill = '#B5893E';
+    svg += `<circle class="grave-dot ${isHi?'highlight':''}" cx="${x}" cy="${y}" r="${isHi?13:11}" fill="${fill}" stroke="${isHi?'#3A4038':'#FFFFFF'}" stroke-width="2" onclick="handleDotClick(${g.id})"></circle>`;
+    if(g.num) svg += `<text x="${x}" y="${y+4}" font-size="10" fill="#FFFFFF" text-anchor="middle" font-family="Heebo" pointer-events="none">${g.num}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+let currentBlockKey = null;
 
 /* ============ SEARCH (only over named entries) ============ */
 const input = document.getElementById('search-input');
@@ -1002,6 +1080,7 @@ function openPopup(id){
   prayerLink.style.display = g.status==='reserved' ? 'none' : 'inline-block';
   pop.classList.add('show');
   renderFullMap();
+  if(currentBlockKey) setBlockView(currentBlockKey);
 }
 function closePopup(){
   document.getElementById('map-popup').classList.remove('show');
@@ -1015,6 +1094,13 @@ function openPrayerSheet(id){
   showView('view-prayer');
   setTimeout(()=>{
     if(window.mpPrefill) window.mpPrefill(firstNameGuess(g.name), 'm');
+  }, 30);
+}
+function goPrayerDirect(){
+  currentHighlight = null;
+  showView('view-prayer');
+  setTimeout(()=>{
+    if(window.mpPrefill) window.mpPrefill('', 'm');
   }, 30);
 }
 </script>
