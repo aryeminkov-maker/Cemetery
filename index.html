@@ -265,6 +265,8 @@ body{
 .admin-list-item:hover{border-color:var(--candle);}
 .admin-list-name{font-size:14px;}
 .admin-list-loc{font-size:12px;color:var(--muted);}
+.admin-session-note{font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.admin-session-note a{color:var(--candle);cursor:pointer;text-decoration:none;}
 .map-card{
   background:var(--stone);border:1px solid var(--stone-line);
   border-radius:var(--radius);padding:14px;
@@ -460,6 +462,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
   #view-prayer .verses{font-size:calc(1.1em * var(--mp-font-scale));}
 }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -600,10 +603,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 
     <div id="admin-login" class="admin-card">
       <div class="admin-field">
-        <label>כתובת Gmail (לצורך אימות הרשאת עריכה)</label>
-        <input type="email" id="admin-email" placeholder="you@gmail.com" autocomplete="off">
+        <label>התחברות עם חשבון Google מורשה לעריכה</label>
       </div>
-      <button class="btn-ghost" onclick="adminLogin()" style="width:100%;justify-content:center;">כניסה</button>
+      <div id="g_id_button_container" style="display:flex;justify-content:center;"></div>
       <div id="admin-login-error" class="admin-error" style="display:none;"></div>
     </div>
 
@@ -612,6 +614,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         <input type="text" id="admin-search" placeholder="חיפוש לפי שם..." oninput="renderAdminList()">
         <button class="btn-ghost" onclick="adminNewRecord()">+ הוספת קבר</button>
       </div>
+      <div class="admin-session-note" id="admin-session-note"></div>
       <div id="admin-list" class="admin-list"></div>
     </div>
 
@@ -774,6 +777,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 <script>
 /* ============ CONFIG ============ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyKh1XdxQTpwJqHkH055KpLTAMpOJgtXK9d6sSJ1wH2jvHUmhiM_qJAGChKW44WFkUf/exec';
+const GOOGLE_CLIENT_ID = 'PASTE_YOUR_GOOGLE_CLIENT_ID_HERE';
 
 /* ============ FALLBACK DATA (used if the live sheet can't be reached) ============ */
 const FALLBACK_GRAVES = [
@@ -1050,6 +1054,9 @@ function getSpots(){
 function spotStatus(spotGraves){
   return spotGraves.some(g => g.status==='occupied') ? 'occupied' : 'reserved';
 }
+function spotOccupants(spotGraves){
+  return spotGraves.filter(g => g.status==='occupied');
+}
 function graveLabel(g){
   return g.status==='reserved' ? 'שמור' : (g.name || 'ללא שם רשום');
 }
@@ -1146,11 +1153,9 @@ function buildBlockSVG(blockKey, highlightId){
     let fill = status==='reserved' ? '#D9C79A' : '#7C9268';
     if(isHi) fill = '#B5893E';
     svg += `<circle class="grave-dot ${isHi?'highlight':''}" cx="${x}" cy="${y}" r="${isHi?13:11}" fill="${fill}" stroke="${isHi?'#3A4038':'#FFFFFF'}" stroke-width="2" onclick="handleSpotClick('${k}')"></circle>`;
-    if(spotGraves.length > 1){
+    if(spotOccupants(spotGraves).length > 1){
       svg += `<circle cx="${x+13}" cy="${y-13}" r="8" fill="#3A4038" stroke="#FFFFFF" stroke-width="1.5"></circle>`;
-      svg += `<text x="${x+13}" y="${y-9}" font-size="10" fill="#FFFFFF" text-anchor="middle" font-family="Heebo" pointer-events="none">${spotGraves.length}</text>`;
-    } else if(g0.num){
-      svg += `<text x="${x}" y="${y+4}" font-size="10" fill="#FFFFFF" text-anchor="middle" font-family="Heebo" pointer-events="none">${g0.num}</text>`;
+      svg += `<text x="${x+13}" y="${y-9}" font-size="10" fill="#FFFFFF" text-anchor="middle" font-family="Heebo" pointer-events="none">${spotOccupants(spotGraves).length}</text>`;
     }
   });
   svg += `</svg>`;
@@ -1169,7 +1174,7 @@ input.addEventListener('input', ()=>{
   box.innerHTML = matches.slice(0,8).map(g=>`
     <div class="suggestion-item" onclick="openDetail(${g.id})">
       <span>${graveLabel(g)}</span>
-      <span class="loc">חלקה ${g.block}${g.num?' · '+g.num:''}</span>
+      <span class="loc">חלקה ${g.block}</span>
     </div>`).join('');
   box.style.display='block';
 });
@@ -1194,7 +1199,7 @@ function performSearch(){
           <div class="result-name">${graveLabel(g)}</div>
           <div class="result-dates">${g.status==='reserved' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
         </div>
-        <div class="result-loc">חלקה ${g.block}${g.num?' · קבר '+g.num:''}</div>
+        <div class="result-loc">חלקה ${g.block}</div>
       </div>`).join('');
   }
   showView('view-results');
@@ -1210,12 +1215,10 @@ function openDetail(id){
   document.getElementById('d-block').textContent = g.block;
   document.getElementById('d-plot').textContent = g.col+1;
   document.getElementById('d-row').textContent = g.rowi+1;
-  const numRow = document.getElementById('d-num-row');
-  if(g.num){ numRow.style.display='flex'; document.getElementById('d-num').textContent = g.num; }
-  else { numRow.style.display='none'; }
+  document.getElementById('d-num-row').style.display='none';
 
   const coBlock = document.getElementById('d-cooccupant-block');
-  const others = graves.filter(x => x.id !== g.id && spotKey(x) === spotKey(g));
+  const others = graves.filter(x => x.id !== g.id && x.status==='occupied' && spotKey(x) === spotKey(g));
   if(others.length){
     coBlock.style.display='block';
     document.getElementById('d-cooccupant').innerHTML = others.map(o =>
@@ -1273,7 +1276,7 @@ function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
     let fill = status==='reserved' ? '#D9C79A' : '#7C9268';
     if(isHi) fill = '#B5893E';
     svg += `<circle class="grave-dot ${isHi?'highlight':''}" cx="${x}" cy="${y}" r="${isHi?8:6}" fill="${fill}" stroke="${isHi?'#3A4038':'#FFFFFF'}" stroke-width="1.5" onclick="handleSpotClick('${k}')"></circle>`;
-    if(spotGraves.length > 1){
+    if(spotOccupants(spotGraves).length > 1){
       svg += `<circle cx="${x+6}" cy="${y-6}" r="4.5" fill="#3A4038" stroke="#FFFFFF" stroke-width="1"></circle>`;
     }
   });
@@ -1307,25 +1310,26 @@ function openSpotPopup(key){
   const spots = getSpots();
   const spotGraves = spots[key];
   if(!spotGraves || !spotGraves.length) return;
-  currentHighlight = spotGraves[0].id;
-  const g0 = spotGraves[0];
+  const occupants = spotOccupants(spotGraves);
+  const g0 = occupants[0] || spotGraves[0];
+  currentHighlight = g0.id;
   const pop = document.getElementById('map-popup');
   const link = document.getElementById('pop-link');
   const prayerLink = document.getElementById('pop-psalms-link');
 
   document.getElementById('pop-loc').textContent = `חלקה ${g0.block} · טור ${g0.col+1} · שורה ${g0.rowi+1}`;
 
-  if(spotGraves.length === 1){
+  if(occupants.length <= 1){
     document.getElementById('pop-name').textContent = graveLabel(g0);
     link.style.display='inline-block';
     link.onclick = ()=>openDetail(g0.id);
     prayerLink.style.display = g0.status==='reserved' ? 'none' : 'inline-block';
     prayerLink.onclick = ()=>openPrayerSheet(g0.id);
   } else {
-    document.getElementById('pop-name').innerHTML = spotGraves.map(g =>
+    document.getElementById('pop-name').innerHTML = occupants.map(g =>
       `<div style="margin-bottom:4px;">
          <span class="plink" onclick="openDetail(${g.id})">${graveLabel(g)}</span>
-         ${g.status!=='reserved' ? `· <span class="plink" onclick="openPrayerSheet(${g.id})">תפילה</span>` : ''}
+         · <span class="plink" onclick="openPrayerSheet(${g.id})">תפילה</span>
        </div>`
     ).join('');
     link.style.display='none';
@@ -1359,42 +1363,71 @@ function goPrayerDirect(){
 }
 
 /* ============ ADMIN PANEL ============ */
-const ADMIN_EMAIL_KEY = 'cemetery_admin_email';
 let adminEditingId = null; // null = יצירת רשומה חדשה
+let adminIdToken = null;   // JWT מ-Google, נשלח לשרת לאימות בכל שמירה
+let adminEmail = null;     // רק לתצוגה - האימות האמיתי נעשה בשרת מתוך ה-token
+let googleSignInReady = false;
 
 function goAdmin(){
   showView('view-admin');
   document.getElementById('admin-datasource-note').textContent =
     dataSource === 'live' ? 'מחובר לגיליון החי — שינויים ישמרו ויופיעו מיד בחיפוש'
                            : 'לא מחובר כרגע לגיליון החי (בדוק את הגדרת API_URL) — שמירה לא תעבוד';
-  const savedEmail = localStorage.getItem(ADMIN_EMAIL_KEY);
-  if(savedEmail){
-    document.getElementById('admin-email').value = savedEmail;
+  if(adminIdToken){
     showAdminDashboard();
   } else {
     document.getElementById('admin-login').style.display = 'block';
     document.getElementById('admin-dashboard').style.display = 'none';
     document.getElementById('admin-form-wrap').style.display = 'none';
+    initGoogleSignIn();
   }
 }
 
-function adminLogin(){
-  const email = document.getElementById('admin-email').value.trim().toLowerCase();
-  const errEl = document.getElementById('admin-login-error');
-  if(!email || email.indexOf('@') === -1){
-    errEl.textContent = 'נא להזין כתובת מייל תקינה.';
+function initGoogleSignIn(){
+  if(googleSignInReady) return;
+  if(!window.google || !window.google.accounts || !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('PASTE_YOUR') === 0){
+    const errEl = document.getElementById('admin-login-error');
+    errEl.textContent = 'התחברות Google עדיין לא הוגדרה באפליקציה (GOOGLE_CLIENT_ID חסר).';
     errEl.style.display = 'block';
     return;
   }
-  errEl.style.display = 'none';
-  localStorage.setItem(ADMIN_EMAIL_KEY, email);
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('g_id_button_container'),
+    { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill', locale: 'iw' }
+  );
+  googleSignInReady = true;
+}
+
+function handleGoogleCredential(response){
+  adminIdToken = response.credential;
+  try{
+    const payload = JSON.parse(decodeURIComponent(escape(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))));
+    adminEmail = payload.email || null;
+  } catch(e){
+    adminEmail = null;
+  }
+  document.getElementById('admin-login-error').style.display = 'none';
   showAdminDashboard();
+}
+
+function adminSignOut(){
+  adminIdToken = null;
+  adminEmail = null;
+  if(window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
+  goAdmin();
 }
 
 function showAdminDashboard(){
   document.getElementById('admin-login').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'block';
   document.getElementById('admin-form-wrap').style.display = 'none';
+  document.getElementById('admin-session-note').innerHTML =
+    `מחובר כ-${adminEmail || 'משתמש לא ידוע'} · <a onclick="adminSignOut()">התנתקות</a>`;
   renderAdminList();
 }
 
@@ -1463,10 +1496,12 @@ async function apiWrite(action, grave){
   if(!API_URL || API_URL.indexOf('PASTE_YOUR') === 0){
     throw new Error('הכלי עדיין לא מחובר לגיליון החי (API_URL לא הוגדר).');
   }
-  const email = localStorage.getItem(ADMIN_EMAIL_KEY) || '';
+  if(!adminIdToken){
+    throw new Error('צריך להתחבר עם Google מחדש (החיבור פג תוקף).');
+  }
   const res = await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, email, grave })
+    body: JSON.stringify({ action, idToken: adminIdToken, grave })
   });
   const data = await res.json();
   if(!data.success) throw new Error(data.message || 'שגיאה לא ידועה.');
