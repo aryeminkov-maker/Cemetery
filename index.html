@@ -213,8 +213,8 @@ body{
 }
 .detail-name{font-family:'Frank Ruhl Libre',serif;font-size:26px;margin:0 0 4px;}
 .detail-photo{
-  width:100%;max-height:280px;object-fit:cover;border-radius:10px;
-  margin-bottom:16px;border:1px solid var(--stone-line);display:block;
+  width:auto;max-width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:10px;
+  margin:0 auto 16px;border:1px solid var(--stone-line);display:block;background:var(--ink-2);
 }
 .detail-years{color:var(--candle);font-size:14px;margin-bottom:22px;}
 .detail-row{
@@ -653,6 +653,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     </div>
 
     <div id="admin-form-wrap" class="admin-card" style="display:none;">
+      <div id="admin-view-card-link" style="display:none;margin-bottom:16px;text-align:left;">
+        <a href="#" onclick="adminViewPublicCard(); return false;" class="plink">צפייה בכרטיס הקבר באפליקציה ←</a>
+      </div>
       <div class="admin-field">
         <label>סטטוס</label>
         <div class="chip-group" id="admin-status-group">
@@ -708,7 +711,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       </div>
       <div class="admin-field" id="admin-photo-field" style="display:none;">
         <label>תמונת מצבה (רק מנהל יכול להעלות/להסיר — נשמרת מיד בשמירה)</label>
-        <img id="admin-photo-preview" style="display:none;width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-bottom:10px;border:1px solid var(--stone-line);" alt="תצוגה מקדימה">
+        <img id="admin-photo-preview" style="display:none;width:auto;max-width:100%;height:auto;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid var(--stone-line);background:var(--ink-2);" alt="תצוגה מקדימה">
         <input type="file" id="admin-photo-input" accept="image/*" onchange="adminUploadPhoto(event)">
         <div id="admin-photo-status" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
         <button class="btn-ghost" id="admin-photo-remove-btn" onclick="adminRemovePhoto()" style="display:none;margin-top:8px;width:100%;justify-content:center;border-color:#E3B7AA;color:#8A3324;">הסרת תמונה</button>
@@ -1619,6 +1622,11 @@ function renderAdminList(){
     </div>`).join('');
 }
 
+function adminViewPublicCard(){
+  if(!adminEditingId) return;
+  openDetail(adminEditingId);
+}
+
 function adminNewRecord(){
   adminEditingId = null;
   document.getElementById('admin-status-group').querySelector('input[value="occupied"]').checked = true;
@@ -1632,6 +1640,7 @@ function adminNewRecord(){
   document.getElementById('admin-description').value = '';
   document.getElementById('admin-delete-btn').style.display = 'none';
   document.getElementById('admin-photo-field').style.display = 'none'; // אין עדיין מזהה קבר לצרף אליו תמונה
+  document.getElementById('admin-view-card-link').style.display = 'none'; // אין עדיין כרטיס לצפות בו
   document.getElementById('admin-form-error').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'none';
   document.getElementById('admin-form-wrap').style.display = 'block';
@@ -1651,6 +1660,7 @@ function adminEditRecord(id){
   document.getElementById('admin-death').value = g.death || '';
   document.getElementById('admin-description').value = g.description || '';
   document.getElementById('admin-delete-btn').style.display = 'inline-flex';
+  document.getElementById('admin-view-card-link').style.display = 'block';
 
   const photoField = document.getElementById('admin-photo-field');
   if(currentUserRole === 'admin'){
