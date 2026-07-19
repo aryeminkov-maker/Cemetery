@@ -527,7 +527,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <button class="back-link" onclick="goHome()">→ חזרה לחיפוש</button>
     <div class="detail-grid">
       <div class="detail-card">
-        <img id="d-photo" class="detail-photo" style="display:none;" alt="תמונת המצבה">
+        <img id="d-photo" class="detail-photo" style="display:none;" alt="תמונת המצבה" onerror="this.style.display='none';">
         <div class="detail-name" id="d-name"></div>
         <div class="detail-years" id="d-years"></div>
         <div class="detail-row"><span class="label">חלקה</span><span id="d-block"></span></div>
