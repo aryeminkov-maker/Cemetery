@@ -523,6 +523,10 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 4L3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4z" stroke="#EAE5D6" stroke-width="1.6" stroke-linejoin="round"/></svg>
           צפייה במפת בית העלמין
         </button>
+        <a class="btn-ghost" href="https://www.waze.com/he/live-map/directions/%D7%91%D7%99%D7%AA-%D7%A2%D7%9C%D7%9E%D7%99%D7%9F-%D7%91%D7%99%D7%AA-%D7%90%D7%9C?to=place.w.23068991.230886522.22345" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.5-7-11.5A7 7 0 0 1 19 9.5C19 14.5 12 21 12 21z" stroke="#EAE5D6" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3" stroke="#EAE5D6" stroke-width="1.6"/></svg>
+          ניווט בוויז לבית העלמין
+        </a>
       </div>
     </div>
     <div class="prayer-direct-link">
@@ -571,6 +575,16 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4h11l5 5v11H4V4z" stroke="#3A4038" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 10h8M8 14h8M8 18h5" stroke="#3A4038" stroke-width="1.4" stroke-linecap="round"/></svg>
           דף תפילה מלא לעילוי נשמה
         </button>
+        <div class="admin-actions" style="margin-top:10px;">
+          <button class="btn-ghost" onclick="shareGraveLink()" style="flex:1;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.3" stroke="#3A4038" stroke-width="1.5"/><circle cx="6" cy="12" r="2.3" stroke="#3A4038" stroke-width="1.5"/><circle cx="18" cy="19" r="2.3" stroke="#3A4038" stroke-width="1.5"/><path d="M8 10.8l8-4.2M8 13.2l8 4.2" stroke="#3A4038" stroke-width="1.4"/></svg>
+            שיתוף קישור לדף זה
+          </button>
+          <button class="btn-ghost" onclick="reportGraveIssue()" style="flex:1;justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3A4038" stroke-width="1.5"/><path d="M12 8v5" stroke="#3A4038" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="#3A4038"/></svg>
+            דיווח על טעות בפרטים
+          </button>
+        </div>
       </div>
       <div class="map-card">
         <div class="map-card-title">מיקום מדויק על המפה</div>
@@ -676,6 +690,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <div class="admin-toolbar">
         <input type="text" id="admin-search" placeholder="חיפוש לפי שם..." oninput="renderAdminList()">
         <button class="btn-ghost" onclick="adminNewRecord()">+ הוספת קבר</button>
+        <button class="btn-ghost" onclick="adminExportCSV()">⬇ גיבוי / ייצוא לקובץ (CSV)</button>
       </div>
       <div id="admin-list" class="admin-list"></div>
     </div>
@@ -879,6 +894,8 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 /* ============ CONFIG ============ */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyKh1XdxQTpwJqHkH055KpLTAMpOJgtXK9d6sSJ1wH2jvHUmhiM_qJAGChKW44WFkUf/exec';
 const GOOGLE_CLIENT_ID = '656595279986-48a5mirlpia1rb1r032h7vgbn6optek7.apps.googleusercontent.com';
+const WAZE_URL = 'https://www.waze.com/he/live-map/directions/%D7%91%D7%99%D7%AA-%D7%A2%D7%9C%D7%9E%D7%99%D7%9F-%D7%91%D7%99%D7%AA-%D7%90%D7%9C?to=place.w.23068991.230886522.22345';
+const CONTACT_EMAIL = 'arye.minkov@gmail.com'; // כתובת ליצירת קשר / דיווח על טעויות — ניתן לעדכן
 
 /* ============ FALLBACK DATA (used if the live sheet can't be reached) ============ */
 const FALLBACK_GRAVES = [
@@ -1314,6 +1331,13 @@ function goHome(){
   showView('view-home');
   document.getElementById('search-input').value='';
   document.getElementById('suggestions').style.display='none';
+  try{
+    const url = new URL(window.location.href);
+    if(url.searchParams.has('grave')){
+      url.searchParams.delete('grave');
+      history.replaceState(null, '', url.toString());
+    }
+  }catch(e){}
 }
 function goMap(){
   currentHighlight = null;
@@ -1479,6 +1503,52 @@ function openDetail(id){
     highlightId:id, mini:true, focusOn:g
   });
   showView('view-detail');
+  try{
+    const url = new URL(window.location.href);
+    url.searchParams.set('grave', id);
+    history.replaceState(null, '', url.toString());
+  }catch(e){}
+}
+
+/* ============ שיתוף קישור ישיר / דיווח על טעות ============ */
+function graveDirectLink(id){
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('grave', id);
+  return url.toString();
+}
+async function shareGraveLink(){
+  if(!currentHighlight) return;
+  const g = graves.find(x=>x.id===currentHighlight);
+  const link = graveDirectLink(currentHighlight);
+  const title = 'איתור קבר - ' + (g?graveLabel(g):'');
+  if(navigator.share){
+    try{ await navigator.share({title, url:link}); return; }catch(e){ /* המשתמש ביטל או שיתוף נכשל - ניפול לגיבוי */ }
+  }
+  try{
+    await navigator.clipboard.writeText(link);
+    alert('הקישור לדף הקבר הועתק ללוח. ניתן להדביק אותו בהודעה או במייל.');
+  }catch(e){
+    prompt('העתיקו את הקישור לדף הקבר:', link);
+  }
+}
+function reportGraveIssue(){
+  if(!currentHighlight) return;
+  const g = graves.find(x=>x.id===currentHighlight);
+  if(!g) return;
+  const link = graveDirectLink(currentHighlight);
+  const subject = 'דיווח על טעות בפרטי קבר - ' + graveLabel(g);
+  const body =
+    'שלום,\n\nברצוני לדווח על טעות או לעדכן פרטים לגבי הקבר הבא:\n' +
+    'שם: ' + graveLabel(g) + '\n' +
+    'חלקה: ' + g.block + ', טור: ' + (g.col+1) + ', שורה: ' + (g.rowi+1) + '\n' +
+    'קישור לדף הקבר: ' + link + '\n\n' +
+    'פרטי הטעות / העדכון המבוקש:\n';
+  const mailto = 'mailto:' + encodeURIComponent(CONTACT_EMAIL) +
+    '?subject=' + encodeURIComponent(subject) +
+    '&body=' + encodeURIComponent(body);
+  window.location.href = mailto;
 }
 
 /* ============ MAP SVG BUILDER ============ */
@@ -1790,6 +1860,38 @@ async function adminRemoveUser(targetEmail){
   }
 }
 
+/* ============ גיבוי / ייצוא נתונים ============ */
+function csvEscape(val){
+  const s = (val===null || val===undefined) ? '' : String(val);
+  if(/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function adminExportCSV(){
+  if(!graves.length){ alert('אין נתונים לייצוא.'); return; }
+  const headers = ['id','חלקה','טור','שורה','מספר קבר','סטטוס','שם','תאריך פטירה (לועזי)','תאריך פטירה (עברי)','עומק','תיאור','קישור תמונה'];
+  const rows = graves
+    .slice()
+    .sort((a,b) => (a.block+a.col+a.rowi).localeCompare(b.block+b.col+b.rowi))
+    .map(g => [
+      g.id, g.block, g.col+1, g.rowi+1, g.num||'',
+      g.status==='reserved'?'שמור':'תפוס',
+      g.name||'', g.death||'', formatDate(g.death)||'',
+      g.depth||1, g.description||'', g.photo||''
+    ]);
+  const csvLines = [headers, ...rows].map(r => r.map(csvEscape).join(','));
+  const csvContent = '\uFEFF' + csvLines.join('\r\n'); // BOM לתמיכה בעברית באקסל
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'גיבוי-בית-עלמין-בית-אל-' + dateStr + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function renderAdminList(){
   const q = (document.getElementById('admin-search').value || '').trim();
   const list = document.getElementById('admin-list');
@@ -2047,6 +2149,17 @@ loadGraves().then(()=>{
       renderAdminList();
     }
   }
+  // קישור ישיר לדף קבר: ?grave=<id>
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const graveParam = params.get('grave');
+    if(graveParam !== null){
+      const gid = parseInt(graveParam, 10);
+      if(!isNaN(gid) && graves.some(x=>x.id===gid)){
+        openDetail(gid);
+      }
+    }
+  }catch(e){}
 });
 </script>
 
