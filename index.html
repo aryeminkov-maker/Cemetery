@@ -212,6 +212,10 @@ body{
   border-radius:var(--radius);padding:26px;
 }
 .detail-name{font-family:'Frank Ruhl Libre',serif;font-size:26px;margin:0 0 4px;}
+.detail-photo{
+  width:100%;max-height:280px;object-fit:cover;border-radius:10px;
+  margin-bottom:16px;border:1px solid var(--stone-line);display:block;
+}
 .detail-years{color:var(--candle);font-size:14px;margin-bottom:22px;}
 .detail-row{
   display:flex;justify-content:space-between;
@@ -523,6 +527,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <button class="back-link" onclick="goHome()">→ חזרה לחיפוש</button>
     <div class="detail-grid">
       <div class="detail-card">
+        <img id="d-photo" class="detail-photo" style="display:none;" alt="תמונת המצבה">
         <div class="detail-name" id="d-name"></div>
         <div class="detail-years" id="d-years"></div>
         <div class="detail-row"><span class="label">חלקה</span><span id="d-block"></span></div>
@@ -610,12 +615,35 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     </div>
 
     <div id="admin-dashboard" style="display:none;">
+      <div class="admin-session-note" id="admin-session-note"></div>
       <div class="admin-toolbar">
         <input type="text" id="admin-search" placeholder="חיפוש לפי שם..." oninput="renderAdminList()">
         <button class="btn-ghost" onclick="adminNewRecord()">+ הוספת קבר</button>
       </div>
-      <div class="admin-session-note" id="admin-session-note"></div>
       <div id="admin-list" class="admin-list"></div>
+
+      <div id="admin-permissions-section" style="display:none;margin-top:32px;">
+        <div class="section-title" style="font-size:18px;">ניהול הרשאות גישה</div>
+        <div class="section-sub">רק משתמשים בתפקיד "מנהל" רואים את המסך הזה</div>
+        <div class="admin-card" style="margin-top:12px;">
+          <div class="admin-field-row">
+            <div class="admin-field">
+              <label>כתובת Gmail</label>
+              <input type="email" id="perm-new-email" placeholder="name@gmail.com">
+            </div>
+            <div class="admin-field">
+              <label>תפקיד</label>
+              <select id="perm-new-role">
+                <option value="editor">עורך</option>
+                <option value="admin">מנהל</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-ghost" onclick="adminAddUser()" style="width:100%;justify-content:center;">הוספה / עדכון תפקיד</button>
+          <div id="perm-error" class="admin-error" style="display:none;"></div>
+        </div>
+        <div id="permissions-list" class="admin-list" style="margin-top:14px;"></div>
+      </div>
     </div>
 
     <div id="admin-form-wrap" class="admin-card" style="display:none;">
@@ -671,6 +699,13 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <div class="admin-field">
         <label>תיאור / קורות חיים (אופציונלי — יופיע בעמוד הקבר אם מולא)</label>
         <textarea id="admin-description" rows="4" placeholder="טקסט חופשי..."></textarea>
+      </div>
+      <div class="admin-field" id="admin-photo-field" style="display:none;">
+        <label>תמונת מצבה (רק מנהל יכול להעלות/להסיר — נשמרת מיד בשמירה)</label>
+        <img id="admin-photo-preview" style="display:none;width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin-bottom:10px;border:1px solid var(--stone-line);" alt="תצוגה מקדימה">
+        <input type="file" id="admin-photo-input" accept="image/*" onchange="adminUploadPhoto(event)">
+        <div id="admin-photo-status" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+        <button class="btn-ghost" id="admin-photo-remove-btn" onclick="adminRemovePhoto()" style="display:none;margin-top:8px;width:100%;justify-content:center;border-color:#E3B7AA;color:#8A3324;">הסרת תמונה</button>
       </div>
       <div class="admin-actions">
         <button class="btn-ghost" onclick="adminSaveRecord()" style="flex:1;justify-content:center;">שמירה</button>
@@ -997,7 +1032,8 @@ async function loadGraves(){
         name: g.name || null,
         death: g.death || null,
         description: g.description || null,
-        depth: g.depth ? Number(g.depth) : 1
+        depth: g.depth ? Number(g.depth) : 1,
+        photo: g.photo || null
       }));
       dataSource = 'live';
     }
@@ -1171,7 +1207,7 @@ input.addEventListener('input', ()=>{
   if(!q){ box.style.display='none'; return; }
   const matches = graves.filter(g=>g.name && g.name.includes(q));
   if(!matches.length){ box.style.display='none'; return; }
-  box.innerHTML = matches.slice(0,8).map(g=>`
+  box.innerHTML = matches.slice(0,2).map(g=>`
     <div class="suggestion-item" onclick="openDetail(${g.id})">
       <span>${graveLabel(g)}</span>
       <span class="loc">חלקה ${g.block}</span>
@@ -1210,6 +1246,9 @@ function openDetail(id){
   const g = graves.find(x=>x.id===id);
   if(!g) return;
   currentHighlight = id;
+  const photoEl = document.getElementById('d-photo');
+  if(g.photo){ photoEl.src = g.photo; photoEl.style.display='block'; }
+  else { photoEl.style.display='none'; photoEl.removeAttribute('src'); }
   document.getElementById('d-name').textContent = graveLabel(g);
   document.getElementById('d-years').textContent = g.status==='reserved' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום');
   document.getElementById('d-block').textContent = g.block;
@@ -1383,14 +1422,30 @@ function goAdmin(){
   }
 }
 
-function initGoogleSignIn(){
+function initGoogleSignIn(attempt){
+  attempt = attempt || 0;
   if(googleSignInReady) return;
-  if(!window.google || !window.google.accounts || !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('PASTE_YOUR') === 0){
+
+  if(!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('PASTE_YOUR') === 0){
     const errEl = document.getElementById('admin-login-error');
     errEl.textContent = 'התחברות Google עדיין לא הוגדרה באפליקציה (GOOGLE_CLIENT_ID חסר).';
     errEl.style.display = 'block';
     return;
   }
+
+  if(!window.google || !window.google.accounts || !window.google.accounts.id){
+    if(attempt < 20){
+      // הסקריפט של גוגל עוד לא סיים להיטען - ננסה שוב בעוד רגע במקום להציג שגיאה
+      setTimeout(()=>initGoogleSignIn(attempt+1), 250);
+    } else {
+      const errEl = document.getElementById('admin-login-error');
+      errEl.textContent = 'לא ניתן לטעון את שירות ההתחברות של Google. בדוק חיבור לאינטרנט (או חוסם פרסומות) ונסה לרענן את הדף.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  document.getElementById('admin-login-error').style.display = 'none';
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: handleGoogleCredential,
@@ -1422,13 +1477,97 @@ function adminSignOut(){
   goAdmin();
 }
 
-function showAdminDashboard(){
+let currentUserRole = null; // 'admin' | 'editor' | null
+
+async function showAdminDashboard(){
   document.getElementById('admin-login').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'block';
   document.getElementById('admin-form-wrap').style.display = 'none';
   document.getElementById('admin-session-note').innerHTML =
-    `מחובר כ-${adminEmail || 'משתמש לא ידוע'} · <a onclick="adminSignOut()">התנתקות</a>`;
+    `בודק הרשאות עבור ${adminEmail || 'המשתמש'}...`;
+
+  try{
+    const res = await apiWrite('whoami', {});
+    currentUserRole = res.role;
+  } catch(err){
+    // ההתחברות ל-Google הצליחה, אבל אין למייל הזה הרשאה מוגדרת בגיליון
+    document.getElementById('admin-login').style.display = 'block';
+    document.getElementById('admin-dashboard').style.display = 'none';
+    const errEl = document.getElementById('admin-login-error');
+    errEl.textContent = String(err.message || err);
+    errEl.style.display = 'block';
+    adminIdToken = null;
+    return;
+  }
+
+  const roleLabel = currentUserRole === 'admin' ? 'מנהל' : 'עורך';
+  document.getElementById('admin-session-note').innerHTML =
+    `מחובר כ-${adminEmail || 'משתמש'} (${roleLabel}) · <a onclick="adminSignOut()">התנתקות</a>`;
+
+  const permSection = document.getElementById('admin-permissions-section');
+  if(currentUserRole === 'admin'){
+    permSection.style.display = 'block';
+    renderPermissionsList();
+  } else {
+    permSection.style.display = 'none';
+  }
+
   renderAdminList();
+}
+
+async function renderPermissionsList(){
+  const holder = document.getElementById('permissions-list');
+  holder.innerHTML = '<div class="empty-state">טוען...</div>';
+  try{
+    const res = await apiWrite('listUsers', {});
+    const users = res.users || [];
+    if(!users.length){
+      holder.innerHTML = '<div class="empty-state">אין עדיין משתמשים מורשים.</div>';
+      return;
+    }
+    holder.innerHTML = users.map(u => `
+      <div class="admin-list-item" style="cursor:default;">
+        <div>
+          <div class="admin-list-name">${u.email}</div>
+          <div class="admin-list-loc">${u.role === 'admin' ? 'מנהל' : 'עורך'}</div>
+        </div>
+        <span class="plink" onclick="adminRemoveUser('${u.email}')" style="color:#8A3324;">הסרה</span>
+      </div>`).join('');
+  } catch(err){
+    holder.innerHTML = `<div class="admin-error">${String(err.message || err)}</div>`;
+  }
+}
+
+async function adminAddUser(){
+  const errEl = document.getElementById('perm-error');
+  errEl.style.display = 'none';
+  const newEmail = document.getElementById('perm-new-email').value.trim().toLowerCase();
+  const newRole = document.getElementById('perm-new-role').value;
+  if(!newEmail || newEmail.indexOf('@') === -1){
+    errEl.textContent = 'נא להזין כתובת מייל תקינה.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try{
+    await apiWrite('addUser', { newEmail, newRole });
+    document.getElementById('perm-new-email').value = '';
+    showToastMain('ההרשאה עודכנה.');
+    renderPermissionsList();
+  } catch(err){
+    errEl.textContent = String(err.message || err);
+    errEl.style.display = 'block';
+  }
+}
+
+async function adminRemoveUser(targetEmail){
+  if(!confirm(`להסיר את ההרשאה של ${targetEmail}?`)) return;
+  try{
+    await apiWrite('removeUser', { targetEmail });
+    showToastMain('ההרשאה הוסרה.');
+    renderPermissionsList();
+  } catch(err){
+    showToastMain(String(err.message || err));
+  }
 }
 
 function renderAdminList(){
@@ -1463,6 +1602,7 @@ function adminNewRecord(){
   document.getElementById('admin-death').value = '';
   document.getElementById('admin-description').value = '';
   document.getElementById('admin-delete-btn').style.display = 'none';
+  document.getElementById('admin-photo-field').style.display = 'none'; // אין עדיין מזהה קבר לצרף אליו תמונה
   document.getElementById('admin-form-error').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'none';
   document.getElementById('admin-form-wrap').style.display = 'block';
@@ -1482,6 +1622,20 @@ function adminEditRecord(id){
   document.getElementById('admin-death').value = g.death || '';
   document.getElementById('admin-description').value = g.description || '';
   document.getElementById('admin-delete-btn').style.display = 'inline-flex';
+
+  const photoField = document.getElementById('admin-photo-field');
+  if(currentUserRole === 'admin'){
+    photoField.style.display = 'block';
+    document.getElementById('admin-photo-input').value = '';
+    document.getElementById('admin-photo-status').textContent = '';
+    const preview = document.getElementById('admin-photo-preview');
+    const removeBtn = document.getElementById('admin-photo-remove-btn');
+    if(g.photo){ preview.src = g.photo; preview.style.display='block'; removeBtn.style.display='block'; }
+    else { preview.style.display='none'; removeBtn.style.display='none'; }
+  } else {
+    photoField.style.display = 'none';
+  }
+
   document.getElementById('admin-form-error').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'none';
   document.getElementById('admin-form-wrap').style.display = 'block';
@@ -1492,7 +1646,7 @@ function adminCancelForm(){
   document.getElementById('admin-dashboard').style.display = 'block';
 }
 
-async function apiWrite(action, grave){
+async function apiWrite(action, extra){
   if(!API_URL || API_URL.indexOf('PASTE_YOUR') === 0){
     throw new Error('הכלי עדיין לא מחובר לגיליון החי (API_URL לא הוגדר).');
   }
@@ -1501,7 +1655,7 @@ async function apiWrite(action, grave){
   }
   const res = await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({ action, idToken: adminIdToken, grave })
+    body: JSON.stringify(Object.assign({ action, idToken: adminIdToken }, extra || {}))
   });
   const data = await res.json();
   if(!data.success) throw new Error(data.message || 'שגיאה לא ידועה.');
@@ -1531,7 +1685,7 @@ async function adminSaveRecord(){
   };
   if(adminEditingId) grave.id = adminEditingId;
   try{
-    await apiWrite(adminEditingId ? 'update' : 'add', grave);
+    await apiWrite(adminEditingId ? 'update' : 'add', { grave });
     await loadGraves();
     showToastMain('הרשומה נשמרה בהצלחה.');
     document.getElementById('admin-form-wrap').style.display = 'none';
@@ -1548,7 +1702,7 @@ async function adminDeleteRecord(){
   if(!confirm('למחוק את הרשומה הזו לצמיתות?')) return;
   const errEl = document.getElementById('admin-form-error');
   try{
-    await apiWrite('delete', { id: adminEditingId });
+    await apiWrite('delete', { grave: { id: adminEditingId } });
     await loadGraves();
     showToastMain('הרשומה נמחקה.');
     document.getElementById('admin-form-wrap').style.display = 'none';
@@ -1557,6 +1711,71 @@ async function adminDeleteRecord(){
   } catch(err){
     errEl.textContent = String(err.message || err);
     errEl.style.display = 'block';
+  }
+}
+
+function resizeImageToBase64_(file, maxDim){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('קריאת הקובץ נכשלה.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('לא ניתן לפענח את התמונה.'));
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve(dataUrl.split(',')[1]); // רק חלק ה-base64, בלי הכותרת data:...
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function adminUploadPhoto(event){
+  const file = event.target.files && event.target.files[0];
+  if(!file || !adminEditingId) return;
+  const statusEl = document.getElementById('admin-photo-status');
+  statusEl.textContent = 'מעלה תמונה...';
+  try{
+    const base64 = await resizeImageToBase64_(file, 1400);
+    const res = await apiWrite('uploadPhoto', { id: adminEditingId, imageBase64: base64, mimeType: 'image/jpeg' });
+    const g = graves.find(x => x.id === adminEditingId);
+    if(g) g.photo = res.url;
+    const preview = document.getElementById('admin-photo-preview');
+    preview.src = res.url;
+    preview.style.display = 'block';
+    document.getElementById('admin-photo-remove-btn').style.display = 'block';
+    statusEl.textContent = 'התמונה הועלתה בהצלחה.';
+    showToastMain('התמונה נשמרה.');
+  } catch(err){
+    statusEl.textContent = 'שגיאה: ' + String(err.message || err);
+  }
+}
+
+async function adminRemovePhoto(){
+  if(!adminEditingId) return;
+  if(!confirm('להסיר את תמונת המצבה?')) return;
+  const statusEl = document.getElementById('admin-photo-status');
+  try{
+    await apiWrite('removePhoto', { id: adminEditingId });
+    const g = graves.find(x => x.id === adminEditingId);
+    if(g) g.photo = null;
+    document.getElementById('admin-photo-preview').style.display = 'none';
+    document.getElementById('admin-photo-remove-btn').style.display = 'none';
+    document.getElementById('admin-photo-input').value = '';
+    statusEl.textContent = 'התמונה הוסרה.';
+    showToastMain('התמונה הוסרה.');
+  } catch(err){
+    statusEl.textContent = 'שגיאה: ' + String(err.message || err);
   }
 }
 
