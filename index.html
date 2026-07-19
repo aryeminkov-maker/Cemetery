@@ -1712,7 +1712,13 @@ async function adminSaveRecord(){
     description: document.getElementById('admin-description').value.trim(),
     depth: Number(document.getElementById('admin-depth-group').querySelector('input:checked').value)
   };
-  if(adminEditingId) grave.id = adminEditingId;
+  if(adminEditingId){
+    grave.id = adminEditingId;
+    // חשוב: לשמר את התמונה הקיימת (אם יש) - אחרת השמירה הרגילה תדרוס אותה בריק,
+    // כי היא לא חלק משדות הטופס הזה (התמונה מנוהלת בנפרד, דרך כפתור ההעלאה)
+    const existing = graves.find(x => x.id === adminEditingId);
+    grave.photo = (existing && existing.photo) ? existing.photo : '';
+  }
   try{
     await apiWrite(adminEditingId ? 'update' : 'add', { grave });
     await loadGraves();
