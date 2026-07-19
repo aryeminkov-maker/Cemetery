@@ -616,15 +616,14 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 
     <div id="admin-dashboard" style="display:none;">
       <div class="admin-session-note" id="admin-session-note"></div>
-      <div class="admin-toolbar">
-        <input type="text" id="admin-search" placeholder="חיפוש לפי שם..." oninput="renderAdminList()">
-        <button class="btn-ghost" onclick="adminNewRecord()">+ הוספת קבר</button>
-      </div>
-      <div id="admin-list" class="admin-list"></div>
 
-      <div id="admin-permissions-section" style="display:none;margin-top:32px;">
+      <div style="text-align:left;margin-bottom:14px;">
+        <button class="btn-ghost" id="admin-permissions-toggle-btn" onclick="togglePermissionsSection()" style="display:none;">ניהול הרשאות</button>
+      </div>
+
+      <div id="admin-permissions-section" style="display:none;margin-bottom:28px;">
         <div class="section-title" style="font-size:18px;">ניהול הרשאות גישה</div>
-        <div class="section-sub">רק משתמשים בתפקיד "מנהל" רואים את המסך הזה</div>
+        <div class="section-sub">רק משתמשים בתפקיד "מנהל" רואים את הקטע הזה</div>
         <div class="admin-card" style="margin-top:12px;">
           <div class="admin-field-row">
             <div class="admin-field">
@@ -644,6 +643,13 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         </div>
         <div id="permissions-list" class="admin-list" style="margin-top:14px;"></div>
       </div>
+
+      <div class="section-title" style="font-size:18px;">קברים</div>
+      <div class="admin-toolbar">
+        <input type="text" id="admin-search" placeholder="חיפוש לפי שם..." oninput="renderAdminList()">
+        <button class="btn-ghost" onclick="adminNewRecord()">+ הוספת קבר</button>
+      </div>
+      <div id="admin-list" class="admin-list"></div>
     </div>
 
     <div id="admin-form-wrap" class="admin-card" style="display:none;">
@@ -1411,7 +1417,13 @@ function goAdmin(){
   showView('view-admin');
   document.getElementById('admin-datasource-note').textContent =
     dataSource === 'live' ? 'מחובר לגיליון החי — שינויים ישמרו ויופיעו מיד בחיפוש'
-                           : 'לא מחובר כרגע לגיליון החי (בדוק את הגדרת API_URL) — שמירה לא תעבוד';
+                           : 'טוען נתונים מהגיליון...';
+  loadGraves().then(()=>{
+    document.getElementById('admin-datasource-note').textContent =
+      dataSource === 'live' ? 'מחובר לגיליון החי — שינויים ישמרו ויופיעו מיד בחיפוש'
+                             : 'לא מחובר כרגע לגיליון החי (בדוק את הגדרת API_URL) — שמירה לא תעבוד';
+    if(document.getElementById('admin-dashboard').style.display !== 'none') renderAdminList();
+  });
   if(adminIdToken){
     showAdminDashboard();
   } else {
@@ -1509,14 +1521,27 @@ async function showAdminDashboard(){
     `מחובר כ-${adminEmail || 'משתמש'} (${roleLabel}) · <a onclick="adminSignOut()">התנתקות</a>`;
 
   const permSection = document.getElementById('admin-permissions-section');
+  const permToggleBtn = document.getElementById('admin-permissions-toggle-btn');
   if(currentUserRole === 'admin'){
-    permSection.style.display = 'block';
-    renderPermissionsList();
+    permToggleBtn.style.display = 'inline-flex';
+    permSection.style.display = 'none'; // מכווץ כברירת מחדל, נפתח בלחיצה
   } else {
+    permToggleBtn.style.display = 'none';
     permSection.style.display = 'none';
   }
 
   renderAdminList();
+}
+
+function togglePermissionsSection(){
+  const permSection = document.getElementById('admin-permissions-section');
+  const isOpen = permSection.style.display !== 'none';
+  if(isOpen){
+    permSection.style.display = 'none';
+  } else {
+    permSection.style.display = 'block';
+    renderPermissionsList();
+  }
 }
 
 async function renderPermissionsList(){
@@ -1803,6 +1828,18 @@ loadGraves().then(()=>{
   if(document.getElementById('view-map').classList.contains('active')){
     renderFullMap();
     if(currentBlockKey) setBlockView(currentBlockKey);
+  }
+  // אם המשתמש כבר במסך הניהול - נעדכן את הודעת מצב החיבור ואת הרשימה
+  if(document.getElementById('view-admin').classList.contains('active')){
+    const noteEl = document.getElementById('admin-datasource-note');
+    if(noteEl){
+      noteEl.textContent = dataSource === 'live'
+        ? 'מחובר לגיליון החי — שינויים ישמרו ויופיעו מיד בחיפוש'
+        : 'לא מחובר כרגע לגיליון החי (בדוק את הגדרת API_URL) — שמירה לא תעבוד';
+    }
+    if(document.getElementById('admin-dashboard').style.display !== 'none'){
+      renderAdminList();
+    }
   }
 });
 </script>
