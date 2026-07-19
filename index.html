@@ -255,6 +255,28 @@ body{
 }
 .admin-actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
 .admin-delete-btn{border-color:#E3B7AA;color:#8A3324;}
+/* HEBREW CALENDAR MODAL */
+.cal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:none;align-items:center;justify-content:center;pointer-events:none;direction:rtl}
+.cal-overlay.open{display:flex;pointer-events:auto}
+.cal-box{background:var(--stone);border-radius:12px;width:310px;max-width:92vw;box-shadow:0 8px 40px rgba(0,0,0,.4);direction:rtl;overflow:hidden}
+.cal-header{background:var(--ink);color:var(--text);padding:13px 16px;display:flex;align-items:center;justify-content:space-between}
+.cal-header h3{font-family:'Frank Ruhl Libre',serif;font-size:15px;font-weight:700;margin:0}
+.cal-nav{background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:2px 10px;border-radius:4px;line-height:1}
+.cal-nav:hover{background:rgba(255,255,255,.15)}
+.cal-selects{display:flex;gap:6px;padding:9px 12px;border-bottom:1px solid var(--stone-line)}
+.cal-selects select{flex:1;font-family:'Heebo',sans-serif;font-size:13px;padding:5px 6px;border:1px solid var(--stone-line);border-radius:5px;direction:rtl;background:var(--ink-2);color:var(--text)}
+.cal-grid{padding:8px 10px 10px}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.cal-dow span{text-align:center;font-size:10px;font-weight:600;color:var(--muted);padding:3px 0}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{text-align:center;padding:6px 2px;font-size:12px;font-family:'Frank Ruhl Libre',serif;cursor:pointer;border-radius:5px;border:none;background:none;color:var(--text);font-weight:500;width:100%}
+.cal-day:hover{background:var(--ink-2)}
+.cal-day.today{border:2px solid var(--candle)}
+.cal-day.selected{background:var(--candle);color:#1a1006}
+.cal-day.empty{visibility:hidden;pointer-events:none}
+.cal-footer{padding:9px 12px;border-top:1px solid var(--stone-line);display:flex;justify-content:flex-end;gap:8px}
+.cal-fbtn{font-family:'Heebo',sans-serif;font-size:13px;padding:6px 14px;border-radius:5px;border:1px solid var(--stone-line);background:var(--ink-2);color:var(--text);cursor:pointer}
+.cal-fbtn.ok{background:var(--candle);color:#1a1006;border-color:var(--candle);font-weight:700}
 .admin-toolbar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
 .admin-toolbar input{
   flex:1;min-width:180px;padding:10px 14px;border-radius:999px;
@@ -520,6 +542,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <div class="section-title" id="results-title">תוצאות חיפוש</div>
     <div class="section-sub" id="results-sub"></div>
     <div class="result-list" id="result-list"></div>
+    <div class="admin-entry-link">
+      <a href="#" onclick="goAdmin(); return false;">ניהול</a>
+    </div>
   </div>
 
   <!-- ===================== DETAIL ===================== -->
@@ -552,6 +577,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         <div class="mini-map-holder" id="mini-map-holder"></div>
         <button class="btn-ghost" onclick="goMapFocused()">פתיחה במפה המלאה</button>
       </div>
+    </div>
+    <div class="admin-entry-link">
+      <a href="#" onclick="goAdmin(); return false;">ניהול</a>
     </div>
   </div>
 
@@ -693,8 +721,12 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <input type="number" id="admin-num" min="1">
         </div>
         <div class="admin-field">
-          <label>תאריך פטירה (אופציונלי)</label>
-          <input type="date" id="admin-death">
+          <label>תאריך פטירה (אופציונלי, לפי הלוח העברי)</label>
+          <input type="hidden" id="admin-death">
+          <button type="button" id="admin-death-trigger" onclick="openCal()"
+            style="width:100%;font-family:'Heebo',sans-serif;font-size:13px;padding:9px 12px;border:1px solid var(--stone-line);border-radius:var(--radius);background:var(--ink-2);color:var(--text);direction:rtl;text-align:right;cursor:pointer;">
+            📅 בחרו תאריך עברי
+          </button>
         </div>
       </div>
       <div class="admin-field">
@@ -722,6 +754,31 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         <button class="btn-ghost admin-delete-btn" id="admin-delete-btn" onclick="adminDeleteRecord()" style="display:none;">מחיקה</button>
       </div>
       <div id="admin-form-error" class="admin-error" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- HEBREW DATE PICKER MODAL -->
+  <div class="cal-overlay" id="cal-overlay" role="dialog" aria-modal="true" aria-label="בחירת תאריך עברי" onclick="if(event.target===this)closeCal()">
+    <div class="cal-box">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calNext()" aria-label="חודש הבא">&#x276E;</button>
+        <h3 id="cal-title"></h3>
+        <button class="cal-nav" onclick="calPrev()" aria-label="חודש קודם">&#x276F;</button>
+      </div>
+      <div class="cal-selects">
+        <select id="cal-msel" onchange="calGoM()"></select>
+        <select id="cal-ysel" onchange="calGoY()"></select>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-dow">
+          <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+      <div class="cal-footer">
+        <button class="cal-fbtn" onclick="closeCal()">ביטול</button>
+        <button class="cal-fbtn ok" onclick="confirmCal()">אישור</button>
+      </div>
     </div>
   </div>
 
@@ -1107,8 +1164,139 @@ function graveLabel(g){
 }
 function formatDate(iso){
   if(!iso) return null;
-  const [y,m,d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+  return fmtHD(iso);
+}
+
+/* ============ HEBREW DATE ENGINE (לוח עברי) ============ */
+// המרה בין תאריך לועזי (המאוחסן בנתונים, בפורמט yyyy-mm-dd) לתאריך עברי לתצוגה,
+// ובחירת תאריך עברי בטופס הניהול שנשמר בפועל כתאריך לועזי מקביל.
+var HN=['','ניסן','אייר','סיון','תמוז','אב','אלול','תשרי','חשון','כסלו','טבת','שבט','אדר','אדר ב׳'];
+var HD=['','א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב','יג','יד','טו','טז','יז','יח','יט','כ','כא','כב','כג','כד','כה','כו','כז','כח','כט','ל'];
+var HEP=-1373427;
+
+function hLeap(y){return((7*y)+1)%19<7;}
+function hEl(y){
+  var me=Math.floor((235*y-234)/19),pe=204+793*(me%1080);
+  var he=5+12*me+793*Math.floor(me/1080)+Math.floor(pe/1080);
+  var cj=1+29*me+Math.floor(he/24),cp=1080*(he%24)+(pe%1080),a;
+  if(cp>=19440||(cj%7===2&&cp>=9924&&!hLeap(y))||(cj%7===1&&cp>=16789&&hLeap(y-1)))a=cj+1;else a=cj;
+  return(a%7===0||a%7===3||a%7===5)?a+1:a;}
+function hYD(y){return hEl(y+1)-hEl(y);}
+function hMD(m,y){
+  if(m===1||m===3||m===5||m===7||m===11)return 30;
+  if(m===4||m===6||m===10||m===13)return 29;
+  if(m===8)return hYD(y)%10===5?30:29;
+  if(m===9)return hYD(y)%10===3?29:30;
+  if(m===2)return 29;
+  if(m===12)return hLeap(y)?30:29;
+  return 29;}
+function hEF(y){return HEP-1+hEl(y);}
+function gLeap(y){return y%4===0&&!(y%100===0&&y%400!==0);}
+function fG(y,m,d){
+  return 365*(y-1)+Math.floor((y-1)/4)-Math.floor((y-1)/100)+Math.floor((y-1)/400)+
+    Math.floor((367*m-362)/12)+(m<=2?0:(gLeap(y)?-1:-2))+d;}
+function fH(y,m,d){
+  var ml=hLeap(y)?13:12,el=hEF(y)+d-1;
+  if(m<7){for(var i=7;i<=ml;i++)el+=hMD(i,y);for(var i=1;i<m;i++)el+=hMD(i,y);}
+  else{for(var i=7;i<m;i++)el+=hMD(i,y);}
+  return el;}
+function h2g(f){
+  var d0=f-1,n4=Math.floor(d0/146097),r1=d0%146097,n1=Math.floor(r1/36524),r2=r1%36524,n01=Math.floor(r2/1461),r3=r2%1461,n001=Math.floor(r3/365);
+  var y=400*n4+100*n1+4*n01+n001+1;
+  if(n1===4||n001===4)return{y:y-1,m:12,d:31};
+  var yd=f-fG(y,1,1)+1,mc=[0,31,gLeap(y)?29:28,31,30,31,30,31,31,30,31,30,31],mo=1;
+  while(yd>mc[mo]){yd-=mc[mo];mo++;}
+  return{y:y,m:mo,d:yd};}
+function g2h(f){
+  var y=Math.round((f-HEP)/365.25);
+  while(hEF(y)>f)y--;while(hEF(y+1)<=f)y++;
+  var sm=f>=fH(y,1,1)?1:7,m=sm;
+  while(f>fH(y,m,hMD(m,y)))m=m===13?1:m+1;
+  return{year:y,month:m,day:f-fH(y,m,1)+1};}
+function hYS(n){
+  var r=n%1000,H=['','ק','ר','ש','ת'],T=['','י','כ','ל','מ','נ','ס','ע','פ','צ'],O=['','א','ב','ג','ד','ה','ו','ז','ח','ט'];
+  var s='',rem=Math.floor(r/100);while(rem>=4){s+='ת';rem-=4;}if(rem>0)s+=H[rem];
+  var t=Math.floor((r%100)/10),o=r%10;
+  if(t===1&&o===5)s+='טו';else if(t===1&&o===6)s+='טז';else{if(t)s+=T[t];if(o)s+=O[o];}
+  return s.length===1?'ה'+s+'׳':'ה'+s.slice(0,-1)+'"'+s.slice(-1);}
+function hMonths(y){
+  var b=[7,8,9,10,11,12,1,2,3,4,5,6];
+  return hLeap(y)?[7,8,9,10,11,12,13,1,2,3,4,5,6]:b;}
+function todayF(){var n=new Date();return fG(n.getFullYear(),n.getMonth()+1,n.getDate());}
+function fmtHD(dateStr){
+  if(!dateStr)return'';
+  var p=dateStr.split('-'),h=g2h(fG(+p[0],+p[1],+p[2]));
+  return HD[h.day]+' '+HN[h.month]+' '+hYS(h.year);}
+
+// ── מצב לוח השנה ──
+var CY=5786,CM=7,CSF=null,CTF=null;
+
+function openCal(){
+  CTF=todayF();
+  var th=g2h(CTF);CY=th.year;CM=th.month;
+  var ex=document.getElementById('admin-death').value;
+  if(ex){var p=ex.split('-'),f=fG(+p[0],+p[1],+p[2]),h=g2h(f);CY=h.year;CM=h.month;CSF=f;}
+  else CSF=null;
+  renderCal();
+  document.getElementById('cal-overlay').classList.add('open');}
+
+function closeCal(){document.getElementById('cal-overlay').classList.remove('open');}
+
+function confirmCal(){
+  var trigger=document.getElementById('admin-death-trigger');
+  if(CSF===null){
+    document.getElementById('admin-death').value='';
+    trigger.textContent='📅 בחרו תאריך עברי';
+    closeCal();return;
+  }
+  var g=h2g(CSF);
+  var ds=g.y+'-'+String(g.m).padStart(2,'0')+'-'+String(g.d).padStart(2,'0');
+  var h=g2h(CSF);
+  var label=HD[h.day]+' '+HN[h.month]+' '+hYS(h.year);
+  document.getElementById('admin-death').value=ds;
+  trigger.textContent=label;
+  closeCal();}
+
+function renderCal(){
+  var ms=hMonths(CY);
+  document.getElementById('cal-title').textContent=HN[CM]+' '+hYS(CY);
+  var msel=document.getElementById('cal-msel');
+  msel.innerHTML='';
+  ms.forEach(function(m){
+    var o=document.createElement('option');
+    o.value=m;o.textContent=HN[m];if(m===CM)o.selected=true;msel.appendChild(o);});
+  var ysel=document.getElementById('cal-ysel');
+  ysel.innerHTML='';
+  var curTY=g2h(todayF()).year;
+  for(var y=curTY-120;y<=curTY+2;y++){
+    var o=document.createElement('option');
+    o.value=y;o.textContent=hYS(y);if(y===CY)o.selected=true;ysel.appendChild(o);}
+  var firstF=fH(CY,CM,1);
+  var dow=firstF%7;
+  var total=hMD(CM,CY);
+  var grid=document.getElementById('cal-days');
+  grid.innerHTML='';
+  for(var i=0;i<dow;i++){var e=document.createElement('button');e.className='cal-day empty';e.textContent='';grid.appendChild(e);}
+  for(var d=1;d<=total;d++){
+    var f=firstF+d-1;
+    var btn=document.createElement('button');
+    btn.type='button';
+    btn.className='cal-day';
+    btn.textContent=HD[d];
+    if(f===CTF)btn.classList.add('today');
+    if(CSF!==null&&f===CSF)btn.classList.add('selected');
+    btn.setAttribute('data-f',f);
+    btn.onclick=function(){CSF=parseInt(this.getAttribute('data-f'));renderCal();};
+    grid.appendChild(btn);}}
+
+function calPrev(){var ms=hMonths(CY),i=ms.indexOf(CM);if(i>0)CM=ms[i-1];else{CY--;CM=hMonths(CY).slice(-1)[0];}renderCal();}
+function calNext(){var ms=hMonths(CY),i=ms.indexOf(CM);if(i<ms.length-1)CM=ms[i+1];else{CY++;CM=hMonths(CY)[0];}renderCal();}
+function calGoM(){CM=parseInt(document.getElementById('cal-msel').value);renderCal();}
+function calGoY(){
+  CY=parseInt(document.getElementById('cal-ysel').value);
+  var ms=hMonths(CY);
+  if(ms.indexOf(CM)===-1)CM=ms[0];
+  renderCal();
 }
 
 let currentHighlight = null;
@@ -1637,6 +1825,7 @@ function adminNewRecord(){
   document.getElementById('admin-rowi').value = 0;
   document.getElementById('admin-num').value = '';
   document.getElementById('admin-death').value = '';
+  document.getElementById('admin-death-trigger').textContent = '📅 בחרו תאריך עברי';
   document.getElementById('admin-description').value = '';
   document.getElementById('admin-delete-btn').style.display = 'none';
   document.getElementById('admin-photo-field').style.display = 'none'; // אין עדיין מזהה קבר לצרף אליו תמונה
@@ -1658,6 +1847,7 @@ function adminEditRecord(id){
   document.getElementById('admin-rowi').value = g.rowi;
   document.getElementById('admin-num').value = g.num || '';
   document.getElementById('admin-death').value = g.death || '';
+  document.getElementById('admin-death-trigger').textContent = g.death ? fmtHD(g.death) : '📅 בחרו תאריך עברי';
   document.getElementById('admin-description').value = g.description || '';
   document.getElementById('admin-delete-btn').style.display = 'inline-flex';
   document.getElementById('admin-view-card-link').style.display = 'block';
