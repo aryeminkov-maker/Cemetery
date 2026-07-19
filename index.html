@@ -1449,12 +1449,16 @@ function initGoogleSignIn(attempt){
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: handleGoogleCredential,
-    auto_select: true
+    auto_select: true,
+    cancel_on_tap_outside: false
   });
   google.accounts.id.renderButton(
     document.getElementById('g_id_button_container'),
     { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill', locale: 'iw' }
   );
+  // One Tap - אם גוגל "זוכר" חשבון אחד שכבר השתמשנו בו כאן, זה יכול
+  // להיכנס עם אישור מהיר אחד (בועה קטנה), בלי לעבור דרך מסך ההתחברות המלא
+  google.accounts.id.prompt();
   googleSignInReady = true;
 }
 
