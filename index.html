@@ -1273,7 +1273,10 @@ const BLOCK_LAYOUT = {
 };
 function graveXY(g){
   const bl = BLOCK_LAYOUT[g.block];
-  return { x: bl.x + g.col*CELL + CELL/2, y: bl.y + g.rowi*CELL + CELL/2 };
+  const rows = getBlockDims()[g.block].rows;
+  // שורה 1 היא הכי דרומית; מסובבים כך שצפון יהיה כלפי מעלה במפה (שורה 1 בתחתית הבלוק)
+  const flippedRowi = rows - 1 - g.rowi;
+  return { x: bl.x + g.col*CELL + CELL/2, y: bl.y + flippedRowi*CELL + CELL/2 };
 }
 
 function spotKey(g){ return g.block+'_'+g.col+'_'+g.rowi; }
