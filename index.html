@@ -714,13 +714,26 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <div class="admin-field">
         <label>סטטוס</label>
         <div class="chip-group" id="admin-status-group">
-          <label class="chip"><input type="radio" name="admin-status" value="occupied" checked><span>קבור</span></label>
-          <label class="chip"><input type="radio" name="admin-status" value="reserved"><span>שמור</span></label>
+          <label class="chip"><input type="radio" name="admin-status" value="occupied" checked onchange="adminUpdateStatusFields()"><span>מלא</span></label>
+          <label class="chip"><input type="radio" name="admin-status" value="reserved" onchange="adminUpdateStatusFields()"><span>שמור</span></label>
+          <label class="chip"><input type="radio" name="admin-status" value="vacant" onchange="adminUpdateStatusFields()"><span>פנוי</span></label>
         </div>
       </div>
       <div class="admin-field" id="admin-name-field">
-        <label>שם הנפטר/ת</label>
-        <input type="text" id="admin-name" placeholder="לדוגמה: דוד כהן">
+        <label>שם פרטי</label>
+        <input type="text" id="admin-firstname" placeholder="לדוגמה: דוד יוסף">
+      </div>
+      <div class="admin-field" id="admin-lastname-field">
+        <label>שם משפחה</label>
+        <input type="text" id="admin-lastname" placeholder="לדוגמה: כהן">
+      </div>
+      <div class="admin-field" id="admin-fathername-field">
+        <label>שם האב</label>
+        <input type="text" id="admin-fathername" placeholder="לדוגמה: אברהם">
+      </div>
+      <div class="admin-field" id="admin-reservedfor-field" style="display:none;">
+        <label>שמור/פנוי עבור מי (לא מוצג לציבור)</label>
+        <input type="text" id="admin-reservedfor" placeholder="לדוגמה: רחל כהן">
       </div>
       <div class="admin-field-row">
         <div class="admin-field">
@@ -729,8 +742,6 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
             <option value="א">א</option>
             <option value="ב">ב</option>
             <option value="ג">ג</option>
-            <option value="ד">ד</option>
-            <option value="ה">ה</option>
           </select>
         </div>
         <div class="admin-field">
@@ -864,24 +875,6 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           </div>
 
           <div class="field">
-            <label>נוסח התפילה</label>
-            <div class="chip-group" id="nusachGroup">
-              <label class="chip">
-                <input type="radio" name="nusach" value="ashkenaz" checked>
-                <span>אשכנז</span>
-              </label>
-              <label class="chip">
-                <input type="radio" name="nusach" value="sefard">
-                <span>ספרד</span>
-              </label>
-              <label class="chip">
-                <input type="radio" name="nusach" value="edot">
-                <span>עדות המזרח</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="field">
             <label class="toggle-row" for="notVisited">
               <input type="checkbox" id="notVisited">
               <span class="txt"><b>לא ביקרתי בבית העלמין ב-30 הימים האחרונים</b>יתווסף ברכת "אֲשֶׁר יָצַר אֶתְכֶם בַּדִּין" לפתיחת התפילה.</span>
@@ -925,204 +918,296 @@ const CONTACT_EMAIL = 'm.dat@bet-el.muni.il'; // כתובת ליצירת קשר 
 
 /* ============ FALLBACK DATA (used if the live sheet can't be reached) ============ */
 const FALLBACK_GRAVES = [
-  {id:1, block:'ב', col:0, rowi:7, num:1, status:'occupied', name:"קינן חיים דניאל", death:null, depth:1},
-  {id:2, block:'ב', col:0, rowi:8, num:2, status:'occupied', name:"נויפלד טובה", death:"2011-10-18", depth:1},
-  {id:3, block:'ב', col:0, rowi:9, num:3, status:'occupied', name:"יצחק לוי", death:null, depth:1},
-  {id:4, block:'ב', col:0, rowi:10, num:4, status:'occupied', name:"מזל לוי", death:null, depth:1},
-  {id:5, block:'ב', col:0, rowi:11, num:5, status:'occupied', name:"סט צביה", death:null, depth:1},
-  {id:6, block:'ב', col:1, rowi:0, num:11, status:'occupied', name:"לובין נחמן", death:null, depth:1},
-  {id:7, block:'ב', col:1, rowi:1, num:12, status:'reserved', name:null, death:null, depth:1},
-  {id:8, block:'ב', col:1, rowi:2, num:13, status:'occupied', name:"לובין אברהם", death:null, depth:1},
-  {id:9, block:'ב', col:1, rowi:3, num:14, status:'occupied', name:"ידידה לובין", death:null, depth:1},
-  {id:10, block:'ב', col:1, rowi:4, num:15, status:'occupied', name:"ספאסר חנה", death:null, depth:1},
-  {id:11, block:'ב', col:1, rowi:5, num:16, status:'occupied', name:"ליסטמן נינה", death:null, depth:1},
-  {id:12, block:'ב', col:1, rowi:7, num:6, status:'occupied', name:"פרימן נעמי", death:null, depth:1},
-  {id:13, block:'ב', col:1, rowi:8, num:7, status:'occupied', name:"אזולאי תרצה", death:null, depth:1},
-  {id:14, block:'ב', col:1, rowi:9, num:8, status:'occupied', name:"קלרמן טל", death:null, depth:1},
-  {id:15, block:'ב', col:1, rowi:10, num:9, status:'occupied', name:"ברלין דבורה", death:null, depth:1},
-  {id:16, block:'ב', col:1, rowi:11, num:10, status:'occupied', name:"האוקיפ בנימין", death:null, depth:1},
-  {id:17, block:'ב', col:2, rowi:1, num:17, status:'occupied', name:"פלטקין דוד יוסף", death:null, depth:1},
-  {id:18, block:'ב', col:2, rowi:4, num:18, status:'occupied', name:"כהן מרחביה חנה", death:null, depth:1},
-  {id:19, block:'ב', col:2, rowi:5, num:19, status:'occupied', name:"טטא מרסל (אשה)", death:null, depth:1},
-  {id:20, block:'ב', col:2, rowi:6, num:20, status:'occupied', name:"סולטן מלכה", death:null, depth:1},
-  {id:21, block:'ב', col:2, rowi:7, num:21, status:'occupied', name:"סולטן שלום", death:null, depth:1},
-  {id:22, block:'ב', col:2, rowi:8, num:22, status:'occupied', name:"לוי צביאל", death:null, depth:1},
-  {id:23, block:'ב', col:2, rowi:9, num:23, status:'occupied', name:"ברקאי שמואל", death:null, depth:1},
-  {id:24, block:'ב', col:2, rowi:10, num:24, status:'occupied', name:"מרים ברקאי", death:null, depth:1},
-  {id:25, block:'ב', col:2, rowi:11, num:25, status:'occupied', name:"כהן דבורה", death:null, depth:1},
-  {id:26, block:'ג', col:0, rowi:0, num:null, status:'occupied', name:"כניסה", death:null, depth:1},
-  {id:27, block:'ג', col:0, rowi:2, num:1, status:'occupied', name:"וינברג נעם", death:null, depth:1},
-  {id:28, block:'ג', col:0, rowi:3, num:2, status:'occupied', name:"הר שפי דן", death:null, depth:1},
-  {id:29, block:'ג', col:0, rowi:4, num:3, status:'occupied', name:"ברוך שורץ", death:"2011-07-15", depth:1},
-  {id:30, block:'ג', col:0, rowi:5, num:4, status:'occupied', name:"שמואל ספרא", death:"2018-02-23", depth:1},
-  {id:31, block:'ג', col:0, rowi:6, num:5, status:'reserved', name:null, death:null, depth:1},
-  {id:32, block:'ג', col:0, rowi:7, num:6, status:'reserved', name:null, death:null, depth:1},
-  {id:33, block:'ג', col:0, rowi:8, num:7, status:'occupied', name:"חנה רוזנבוים", death:null, depth:1},
-  {id:34, block:'ג', col:0, rowi:9, num:8, status:'occupied', name:"תהילה מלאכי", death:null, depth:1},
-  {id:35, block:'ג', col:0, rowi:10, num:9, status:'reserved', name:null, death:null, depth:1},
-  {id:36, block:'ג', col:0, rowi:11, num:10, status:'occupied', name:"ר' יעקב שמריה", death:null, depth:1},
-  {id:37, block:'ג', col:0, rowi:12, num:11, status:'occupied', name:"זלמן האנמטה", death:null, depth:1},
-  {id:38, block:'ג', col:1, rowi:1, num:12, status:'occupied', name:"בשמת ספרא", death:"2018-06-03", depth:1},
-  {id:39, block:'ג', col:1, rowi:2, num:13, status:'occupied', name:"פלסר רוחמה", death:null, depth:1},
-  {id:40, block:'ג', col:1, rowi:3, num:14, status:'reserved', name:null, death:null, depth:1},
-  {id:41, block:'ג', col:1, rowi:4, num:15, status:'occupied', name:"עזריאל צבי מדיז'ינסקי", death:"2011-08-13", depth:1},
-  {id:42, block:'ג', col:1, rowi:5, num:16, status:'occupied', name:"קאפח אמיתי", death:null, depth:1},
-  {id:43, block:'ג', col:1, rowi:6, num:17, status:'occupied', name:"בכרך אוהד", death:null, depth:1},
-  {id:44, block:'ג', col:1, rowi:7, num:18, status:'occupied', name:"צור אפרים", death:null, depth:1},
-  {id:45, block:'ג', col:1, rowi:8, num:19, status:'occupied', name:"צור איטה", death:null, depth:1},
-  {id:46, block:'ג', col:1, rowi:9, num:20, status:'occupied', name:"יצחק ספרא", death:null, depth:1},
-  {id:47, block:'ג', col:1, rowi:11, num:22, status:'occupied', name:"ישורון ויפה", death:null, depth:1},
-  {id:48, block:'ג', col:1, rowi:12, num:23, status:'occupied', name:"צפורה ויפה", death:null, depth:1},
-  {id:49, block:'ג', col:2, rowi:0, num:24, status:'occupied', name:"עדי איצקוביץ", death:null, depth:1},
-  {id:50, block:'ג', col:2, rowi:1, num:25, status:'occupied', name:"רבקה כהן", death:null, depth:1},
-  {id:51, block:'ג', col:2, rowi:2, num:26, status:'occupied', name:"קוגן אנה", death:null, depth:1},
-  {id:52, block:'ג', col:2, rowi:3, num:27, status:'occupied', name:"קנריק תחיה", death:null, depth:1},
-  {id:53, block:'ג', col:2, rowi:4, num:28, status:'occupied', name:"יהודה בורר", death:null, depth:1},
-  {id:54, block:'ג', col:2, rowi:5, num:29, status:'occupied', name:"בלמס מאיר", death:null, depth:1},
-  {id:55, block:'ג', col:2, rowi:6, num:30, status:'occupied', name:"בנימין ישראל", death:null, depth:1},
-  {id:56, block:'ג', col:2, rowi:7, num:31, status:'reserved', name:null, death:null, depth:1},
-  {id:57, block:'ג', col:2, rowi:8, num:32, status:'reserved', name:null, death:null, depth:1},
-  {id:58, block:'ג', col:2, rowi:9, num:33, status:'occupied', name:"צבי כהן", death:null, depth:1},
-  {id:59, block:'ג', col:2, rowi:10, num:34, status:'occupied', name:"שמואל איזנבך", death:null, depth:1},
-  {id:60, block:'ג', col:2, rowi:11, num:35, status:'occupied', name:"אייזנבך רבקה", death:null, depth:1},
-  {id:61, block:'ג', col:2, rowi:12, num:36, status:'occupied', name:"שושנה יונסי", death:null, depth:1},
-  {id:62, block:'ג', col:3, rowi:0, num:37, status:'occupied', name:"איבן שהואט", death:null, depth:1},
-  {id:63, block:'ג', col:3, rowi:1, num:38, status:'occupied', name:"ניסים חי שהואט", death:"2019-01-22", depth:1},
-  {id:64, block:'ג', col:3, rowi:2, num:39, status:'occupied', name:"זיונץ רפאל", death:null, depth:1},
-  {id:65, block:'ג', col:3, rowi:3, num:40, status:'occupied', name:"זיונץ נלה", death:null, depth:1},
-  {id:66, block:'ג', col:3, rowi:4, num:41, status:'occupied', name:"מרמלשטיין בתיה", death:null, depth:1},
-  {id:67, block:'ג', col:3, rowi:5, num:42, status:'reserved', name:null, death:null, depth:1},
-  {id:68, block:'ג', col:3, rowi:6, num:43, status:'occupied', name:"קרוגליאק אהרון", death:null, depth:1},
-  {id:69, block:'ג', col:3, rowi:7, num:44, status:'occupied', name:"גוטמן חיים יחזקאל", death:null, depth:1},
-  {id:70, block:'ג', col:3, rowi:8, num:45, status:'occupied', name:"המר יונה [איש]", death:null, depth:1},
-  {id:71, block:'ג', col:3, rowi:9, num:46, status:'occupied', name:"נתן נח כ\"ץ", death:"2018-12-27", depth:1},
-  {id:72, block:'ג', col:3, rowi:10, num:47, status:'occupied', name:"דן חנה", death:null, depth:1},
-  {id:73, block:'ג', col:3, rowi:11, num:48, status:'reserved', name:null, death:null, depth:1},
-  {id:74, block:'ג', col:3, rowi:12, num:49, status:'occupied', name:"ישעיהו חריף", death:null, depth:1},
-  {id:75, block:'א', col:0, rowi:0, num:1, status:'reserved', name:null, death:null, depth:1},
-  {id:76, block:'א', col:0, rowi:1, num:3, status:'reserved', name:null, death:null, depth:1},
-  {id:77, block:'א', col:0, rowi:2, num:5, status:'reserved', name:null, death:null, depth:1},
-  {id:78, block:'א', col:0, rowi:3, num:7, status:'reserved', name:null, death:null, depth:1},
-  {id:79, block:'א', col:0, rowi:4, num:9, status:'reserved', name:null, death:null, depth:1},
-  {id:80, block:'א', col:0, rowi:5, num:11, status:'occupied', name:"פרץ יעקב", death:null, depth:1},
-  {id:81, block:'א', col:0, rowi:6, num:13, status:'reserved', name:null, death:null, depth:1},
-  {id:82, block:'א', col:0, rowi:7, num:15, status:'reserved', name:null, death:null, depth:1},
-  {id:83, block:'א', col:0, rowi:8, num:17, status:'reserved', name:null, death:null, depth:1},
-  {id:84, block:'א', col:1, rowi:0, num:2, status:'occupied', name:"שלומית ישראל", death:null, depth:1},
-  {id:85, block:'א', col:1, rowi:1, num:4, status:'occupied', name:"אהרון  שוקרון", death:null, depth:1},
-  {id:86, block:'א', col:1, rowi:2, num:6, status:'occupied', name:"עמנואל אלאלוף", death:null, depth:1},
-  {id:87, block:'א', col:1, rowi:3, num:8, status:'occupied', name:"שרה הנמאטה", death:null, depth:1},
-  {id:88, block:'א', col:1, rowi:4, num:10, status:'occupied', name:"דוד שפירא", death:null, depth:1},
-  {id:89, block:'א', col:1, rowi:5, num:12, status:'occupied', name:"פרץ פרלה", death:null, depth:1},
-  {id:90, block:'א', col:1, rowi:6, num:14, status:'occupied', name:"אליהו פרץ", death:null, depth:1},
-  {id:91, block:'א', col:1, rowi:7, num:16, status:'occupied', name:"עדינה גנץ", death:null, depth:1},
-  {id:92, block:'א', col:1, rowi:8, num:18, status:'occupied', name:"סופיה מרטינוב", death:null, depth:1},
-  {id:93, block:'א', col:2, rowi:0, num:19, status:'occupied', name:"אסתר אביגד", death:null, depth:1},
-  {id:94, block:'א', col:2, rowi:1, num:21, status:'reserved', name:null, death:null, depth:1},
-  {id:95, block:'א', col:2, rowi:2, num:23, status:'reserved', name:null, death:null, depth:1},
-  {id:96, block:'א', col:2, rowi:3, num:25, status:'reserved', name:null, death:null, depth:1},
-  {id:97, block:'א', col:2, rowi:4, num:27, status:'reserved', name:null, death:null, depth:1},
-  {id:98, block:'א', col:2, rowi:6, num:31, status:'reserved', name:null, death:null, depth:1},
-  {id:99, block:'א', col:2, rowi:7, num:33, status:'reserved', name:null, death:null, depth:1},
-  {id:100, block:'א', col:2, rowi:8, num:35, status:'reserved', name:null, death:null, depth:1},
-  {id:101, block:'א', col:3, rowi:0, num:20, status:'occupied', name:"פרלה ענתבי", death:null, depth:1},
-  {id:102, block:'א', col:3, rowi:1, num:22, status:'occupied', name:"צבירי חיים", death:null, depth:1},
-  {id:103, block:'א', col:3, rowi:2, num:24, status:'occupied', name:"דולה ליאנדרס", death:null, depth:1},
-  {id:104, block:'א', col:3, rowi:3, num:26, status:'occupied', name:"נעימה שמש", death:null, depth:1},
-  {id:105, block:'א', col:3, rowi:4, num:28, status:'occupied', name:"אלישבע פוקרוי", death:null, depth:1},
-  {id:106, block:'א', col:3, rowi:5, num:30, status:'occupied', name:"יהודה הרצל סמדר", death:null, depth:1},
-  {id:107, block:'א', col:3, rowi:6, num:32, status:'occupied', name:"עקיבא טיילור", death:null, depth:1},
-  {id:108, block:'א', col:3, rowi:7, num:34, status:'occupied', name:"שמואל כהן", death:null, depth:1},
-  {id:109, block:'א', col:3, rowi:8, num:36, status:'reserved', name:null, death:null, depth:1},
-  {id:110, block:'א', col:4, rowi:0, num:37, status:'reserved', name:null, death:null, depth:1},
-  {id:111, block:'א', col:4, rowi:2, num:41, status:'reserved', name:null, death:null, depth:1},
-  {id:112, block:'א', col:4, rowi:3, num:43, status:'reserved', name:null, death:null, depth:1},
-  {id:113, block:'א', col:4, rowi:4, num:45, status:'reserved', name:null, death:null, depth:1},
-  {id:114, block:'א', col:4, rowi:5, num:47, status:'occupied', name:"מנפרד ויספיש", death:null, depth:1},
-  {id:115, block:'א', col:4, rowi:6, num:49, status:'reserved', name:null, death:null, depth:1},
-  {id:116, block:'א', col:4, rowi:7, num:51, status:'occupied', name:"נילי להנגהל", death:null, depth:1},
-  {id:117, block:'א', col:4, rowi:8, num:53, status:'occupied', name:"רנטליי", death:null, depth:1},
-  {id:118, block:'א', col:5, rowi:0, num:38, status:'occupied', name:"מרה גורליק", death:null, depth:1},
-  {id:119, block:'א', col:5, rowi:1, num:40, status:'occupied', name:"יוסי שרון", death:null, depth:1},
-  {id:120, block:'א', col:5, rowi:2, num:42, status:'occupied', name:"חנוך הכהן", death:null, depth:1},
-  {id:121, block:'א', col:5, rowi:3, num:44, status:'occupied', name:"מרים שרעבי", death:null, depth:1},
-  {id:122, block:'א', col:5, rowi:4, num:46, status:'occupied', name:"מוריה בר און", death:null, depth:1},
-  {id:123, block:'א', col:5, rowi:5, num:48, status:'occupied', name:"לוסיין זרביב", death:null, depth:1},
-  {id:124, block:'א', col:5, rowi:6, num:50, status:'occupied', name:"אלכסנדר ון לובין", death:null, depth:1},
-  {id:125, block:'א', col:5, rowi:7, num:52, status:'occupied', name:"דניאל להנגהל", death:null, depth:1},
-  {id:126, block:'א', col:5, rowi:8, num:54, status:'occupied', name:"דבורה רנטלי", death:null, depth:1},
-  {id:127, block:'א', col:6, rowi:0, num:55, status:'reserved', name:null, death:null, depth:1},
-  {id:128, block:'א', col:6, rowi:1, num:57, status:'reserved', name:null, death:null, depth:1},
-  {id:129, block:'א', col:6, rowi:2, num:59, status:'reserved', name:null, death:null, depth:1},
-  {id:130, block:'א', col:6, rowi:3, num:61, status:'reserved', name:null, death:null, depth:1},
-  {id:131, block:'א', col:6, rowi:4, num:63, status:'reserved', name:null, death:null, depth:1},
-  {id:132, block:'א', col:6, rowi:6, num:67, status:'reserved', name:null, death:null, depth:1},
-  {id:133, block:'א', col:6, rowi:7, num:69, status:'reserved', name:null, death:null, depth:1},
-  {id:134, block:'א', col:6, rowi:8, num:71, status:'reserved', name:null, death:null, depth:1},
-  {id:135, block:'א', col:7, rowi:0, num:56, status:'occupied', name:"שלום פצ'ניק", death:null, depth:1},
-  {id:136, block:'א', col:7, rowi:1, num:58, status:'occupied', name:"אודליה בניון", death:null, depth:1},
-  {id:137, block:'א', col:7, rowi:2, num:60, status:'occupied', name:"חיים אביצור", death:null, depth:1},
-  {id:138, block:'א', col:7, rowi:3, num:62, status:'occupied', name:"שלמה פיירשטיין", death:null, depth:1},
-  {id:139, block:'א', col:7, rowi:4, num:64, status:'occupied', name:"בן פורת ישראל", death:null, depth:1},
-  {id:140, block:'א', col:7, rowi:5, num:66, status:'occupied', name:"יורם צונץ", death:null, depth:1},
-  {id:141, block:'א', col:7, rowi:6, num:68, status:'occupied', name:"שייקה רונן", death:null, depth:1},
-  {id:142, block:'א', col:7, rowi:7, num:70, status:'occupied', name:"אדוארד מאמו", death:null, depth:1},
-  {id:143, block:'א', col:7, rowi:8, num:72, status:'occupied', name:"שפרה יהודית פיירשטיין", death:null, depth:1},
-  {id:144, block:'ד', col:0, rowi:0, num:1, status:'occupied', name:"דבורה פרקש/ושלמה", death:null, depth:1},
-  {id:145, block:'ד', col:0, rowi:1, num:2, status:'occupied', name:"חגית ספרא", death:null, depth:1},
-  {id:146, block:'ד', col:0, rowi:2, num:3, status:'occupied', name:"רחל מרים צחי", death:null, depth:1},
-  {id:147, block:'ד', col:0, rowi:3, num:4, status:'reserved', name:null, death:null, depth:1},
-  {id:148, block:'ד', col:0, rowi:4, num:5, status:'reserved', name:null, death:null, depth:1},
-  {id:149, block:'ד', col:0, rowi:5, num:6, status:'occupied', name:"טובה פרנקל", death:null, depth:1},
-  {id:150, block:'ד', col:0, rowi:6, num:7, status:'reserved', name:null, death:null, depth:1},
-  {id:151, block:'ד', col:0, rowi:7, num:8, status:'occupied', name:"בועז קולטה", death:null, depth:1},
-  {id:152, block:'ד', col:1, rowi:0, num:9, status:'occupied', name:"חנה סמיואלס", death:null, depth:1},
-  {id:153, block:'ד', col:1, rowi:1, num:10, status:'occupied', name:"ידידה יורם", death:null, depth:1},
-  {id:154, block:'ד', col:1, rowi:2, num:11, status:'occupied', name:"חנה אביגיל רוזנטל", death:null, depth:1},
-  {id:155, block:'ד', col:1, rowi:3, num:12, status:'occupied', name:"פולינה טרנוב", death:null, depth:1},
-  {id:156, block:'ד', col:1, rowi:4, num:13, status:'occupied', name:"ריבה בקשייב", death:null, depth:1},
-  {id:157, block:'ד', col:1, rowi:5, num:14, status:'reserved', name:null, death:null, depth:1},
-  {id:158, block:'ד', col:1, rowi:6, num:15, status:'occupied', name:"רוזי דרייפוס", death:null, depth:1},
-  {id:159, block:'ד', col:1, rowi:7, num:16, status:'occupied', name:"ורה איוושקוב", death:null, depth:1},
-  {id:160, block:'ד', col:2, rowi:0, num:17, status:'occupied', name:"גרה פנחס", death:null, depth:1},
-  {id:161, block:'ד', col:2, rowi:1, num:18, status:'occupied', name:"אליהו מתוק", death:null, depth:1},
-  {id:162, block:'ד', col:2, rowi:2, num:19, status:'occupied', name:"לידיה מתוק", death:null, depth:1},
-  {id:163, block:'ד', col:2, rowi:3, num:20, status:'occupied', name:"דרורה ברעם", death:null, depth:1},
-  {id:164, block:'ד', col:2, rowi:4, num:21, status:'occupied', name:"ציפי דביולר", death:null, depth:1},
-  {id:165, block:'ד', col:2, rowi:5, num:22, status:'reserved', name:null, death:null, depth:1},
-  {id:166, block:'ד', col:2, rowi:6, num:23, status:'occupied', name:"נתנאל חיים שלו", death:null, depth:1},
-  {id:167, block:'ד', col:2, rowi:7, num:24, status:'occupied', name:"שמעון ולדרמה", death:null, depth:1},
-  {id:168, block:'ד', col:3, rowi:0, num:25, status:'occupied', name:"וסכז בועז", death:null, depth:1},
-  {id:169, block:'ד', col:3, rowi:1, num:26, status:'reserved', name:null, death:null, depth:1},
-  {id:170, block:'ד', col:3, rowi:2, num:27, status:'occupied', name:"אילה כהן", death:null, depth:1},
-  {id:171, block:'ד', col:3, rowi:3, num:28, status:'occupied', name:"מתילדה אגיאשווילי", death:null, depth:1},
-  {id:172, block:'ד', col:3, rowi:4, num:29, status:'occupied', name:"בניהו שוקרון", death:null, depth:1},
-  {id:173, block:'ד', col:3, rowi:5, num:30, status:'occupied', name:"יוסף אלקובי", death:null, depth:1},
-  {id:174, block:'ד', col:3, rowi:6, num:31, status:'occupied', name:"שמואל האס", death:null, depth:1},
-  {id:175, block:'ד', col:3, rowi:7, num:32, status:'occupied', name:"בטי הרמן", death:null, depth:1},
-  {id:176, block:'ה', col:0, rowi:0, num:null, status:'occupied', name:"משה כהן", death:null, depth:1},
-  {id:177, block:'ה', col:9, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:178, block:'ה', col:8, rowi:1, num:null, status:'occupied', name:"אורית סג\"ל", death:null, depth:2},
-  {id:179, block:'ה', col:6, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:180, block:'ה', col:5, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:181, block:'ה', col:3, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:182, block:'ה', col:2, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:183, block:'ה', col:1, rowi:1, num:null, status:'reserved', name:null, death:null, depth:2},
-  {id:184, block:'ה', col:10, rowi:1, num:null, status:'occupied', name:"נחליה קינגסברג", death:null, depth:1},
-  {id:185, block:'ה', col:9, rowi:1, num:null, status:'occupied', name:"הנרי צבי יקרסון", death:null, depth:1},
-  {id:186, block:'ה', col:8, rowi:1, num:null, status:'occupied', name:"יוסי סג\"ל", death:null, depth:1},
-  {id:187, block:'ה', col:7, rowi:1, num:null, status:'occupied', name:"אברהם צוברי", death:null, depth:1},
-  {id:188, block:'ה', col:6, rowi:1, num:null, status:'reserved', name:null, death:null, depth:1},
-  {id:189, block:'ה', col:5, rowi:1, num:null, status:'occupied', name:"אילנה לרנר", death:null, depth:1},
-  {id:190, block:'ה', col:4, rowi:1, num:null, status:'occupied', name:"ישראל סט", death:null, depth:1},
-  {id:191, block:'ה', col:3, rowi:1, num:null, status:'occupied', name:"יצחק ספרא", death:null, depth:1},
-  {id:192, block:'ה', col:2, rowi:1, num:null, status:'occupied', name:"אליהו מלול", death:null, depth:1},
-  {id:193, block:'ה', col:1, rowi:1, num:null, status:'occupied', name:"מאיר איזנמן", death:null, depth:1},
-  {id:194, block:'ה', col:0, rowi:1, num:null, status:'occupied', name:"משה שרעבי", death:null, depth:1},
+  {id:1, num:1, block:"א", col:0, rowi:0, status:"occupied", firstName:"דוד יוסף", lastName:"פלטקין", fatherName:"אברהם", death:"1992-02-25", reservedFor:null, depth:1},
+  {id:2, num:2, block:"א", col:1, rowi:0, status:"occupied", firstName:"מרחביה חנה", lastName:"כהן", fatherName:"מיחה", death:"1993-03-08", reservedFor:null, depth:1},
+  {id:3, num:3, block:"א", col:2, rowi:0, status:"occupied", firstName:"טטא מרסל", lastName:"בן חיון", fatherName:"מימון", death:"1993-04-12", reservedFor:null, depth:1},
+  {id:4, num:4, block:"א", col:3, rowi:0, status:"occupied", firstName:"מלכה", lastName:"סולטן", fatherName:"משה", death:"2003-06-11", reservedFor:null, depth:1},
+  {id:5, num:5, block:"א", col:4, rowi:0, status:"occupied", firstName:"שלום ", lastName:"סולטן", fatherName:"חיים", death:"2012-09-12", reservedFor:null, depth:1},
+  {id:6, num:6, block:"א", col:5, rowi:0, status:"occupied", firstName:"צביאל אברהם", lastName:"לוי", fatherName:"ורדה", death:"1997-08-22", reservedFor:null, depth:1},
+  {id:7, num:7, block:"א", col:6, rowi:0, status:"occupied", firstName:"שמואל", lastName:"ברקאי", fatherName:"לוי יצחק", death:"1998-06-16", reservedFor:null, depth:1},
+  {id:8, num:8, block:"א", col:7, rowi:0, status:"occupied", firstName:"מרים", lastName:"ברקאי", fatherName:"יצחק", death:"2021-11-24", reservedFor:null, depth:1},
+  {id:9, num:9, block:"א", col:8, rowi:0, status:"occupied", firstName:"דבורה", lastName:"כהן", fatherName:"משה יצחק", death:"2001-07-23", reservedFor:null, depth:1},
+  {id:10, num:10, block:"א", col:9, rowi:0, status:"occupied", firstName:"שלום מרדכי", lastName:"פצ'ניק", fatherName:"אהרן חיים", death:"2019-06-05", reservedFor:null, depth:1},
+  {id:11, num:11, block:"א", col:10, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"רחל פצ'ניק", depth:1},
+  {id:12, num:12, block:"א", col:11, rowi:0, status:"occupied", firstName:"אודליה", lastName:"בניון", fatherName:"שרה", death:"2019-08-23", reservedFor:null, depth:1},
+  {id:13, num:13, block:"א", col:12, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יהודה בניון", depth:1},
+  {id:14, num:14, block:"א", col:13, rowi:0, status:"occupied", firstName:"חיים", lastName:"אביצור", fatherName:"מרדכי", death:"2019-09-08", reservedFor:null, depth:1},
+  {id:15, num:15, block:"א", col:14, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יהודית אביצור", depth:1},
+  {id:16, num:16, block:"א", col:15, rowi:0, status:"occupied", firstName:"ישראל", lastName:"בן פורת", fatherName:"יחיאל", death:"2020-02-07", reservedFor:null, depth:1},
+  {id:17, num:17, block:"א", col:16, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אפרת בן פורת", depth:1},
+  {id:18, num:18, block:"א", col:17, rowi:0, status:"occupied", firstName:"יורם יהודה", lastName:"צונץ", fatherName:"מרדכי", death:"2020-06-13", reservedFor:null, depth:1},
+  {id:19, num:19, block:"א", col:18, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:20, num:20, block:"א", col:19, rowi:0, status:"occupied", firstName:"ישעיהו", lastName:"רונן", fatherName:"יהודה", death:"2020-07-01", reservedFor:null, depth:1},
+  {id:21, num:21, block:"א", col:20, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"דבורה רונן", depth:1},
+  {id:22, num:22, block:"א", col:21, rowi:0, status:"occupied", firstName:"יהודה", lastName:"מאמו", fatherName:"שלמה", death:"2020-08-20", reservedFor:null, depth:1},
+  {id:23, num:23, block:"א", col:22, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"ז'קלין מאמו", depth:1},
+  {id:24, num:24, block:"א", col:23, rowi:0, status:"occupied", firstName:"שפרה יהודית", lastName:"פיירשטיין", fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:25, num:25, block:"א", col:24, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יונה פיירשטיין", depth:1},
+  {id:26, num:26, block:"א", col:0, rowi:1, status:"occupied", firstName:"נחמן", lastName:"לובין", fatherName:"אברהם", death:"2000-04-08", reservedFor:null, depth:1},
+  {id:27, num:27, block:"א", col:1, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שולמית לובין", depth:1},
+  {id:28, num:28, block:"א", col:2, rowi:1, status:"occupied", firstName:"אברהם", lastName:"לובין", fatherName:"נחמן", death:"1999-05-05", reservedFor:null, depth:1},
+  {id:29, num:29, block:"א", col:3, rowi:1, status:"occupied", firstName:"ידידיה", lastName:"לובין", fatherName:"מאיר נסים", death:"2019-04-10", reservedFor:null, depth:1},
+  {id:30, num:30, block:"א", col:4, rowi:1, status:"occupied", firstName:"חנה", lastName:"סאפסר", fatherName:"יצחק", death:"1999-02-02", reservedFor:null, depth:1},
+  {id:31, num:31, block:"א", col:5, rowi:1, status:"occupied", firstName:"נינה", lastName:"ליסטמן", fatherName:"יצחק", death:"1999-03-08", reservedFor:null, depth:1},
+  {id:32, num:32, block:"א", col:6, rowi:1, status:"occupied", firstName:"נעמי ", lastName:"פרימן", fatherName:"יהודה", death:"2002-05-02", reservedFor:null, depth:1},
+  {id:33, num:33, block:"א", col:7, rowi:1, status:"occupied", firstName:"תרצה", lastName:"אזולאי", fatherName:"יצחק", death:"1998-06-01", reservedFor:null, depth:1},
+  {id:34, num:34, block:"א", col:8, rowi:1, status:"occupied", firstName:"טל", lastName:"קלרמן", fatherName:"צפניה", death:"2000-10-06", reservedFor:null, depth:1},
+  {id:35, num:35, block:"א", col:9, rowi:1, status:"occupied", firstName:"דבורה", lastName:"ברלין", fatherName:"משה מנחם", death:"2001-01-17", reservedFor:null, depth:1},
+  {id:36, num:36, block:"א", col:10, rowi:1, status:"occupied", firstName:"בנימין ", lastName:"האוקיפ", fatherName:"יצחק", death:"2000-07-30", reservedFor:null, depth:1},
+  {id:37, num:37, block:"א", col:11, rowi:1, status:"occupied", firstName:"מרה", lastName:"גורליק", fatherName:"חוה", death:"2020-12-18", reservedFor:null, depth:1},
+  {id:38, num:38, block:"א", col:12, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"גרשון גורליק", depth:1},
+  {id:39, num:39, block:"א", col:13, rowi:1, status:"occupied", firstName:"יוסף", lastName:"שרון", fatherName:"פנחס", death:"2021-02-27", reservedFor:null, depth:1},
+  {id:40, num:40, block:"א", col:14, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:41, num:41, block:"א", col:15, rowi:1, status:"occupied", firstName:"חנוך", lastName:"פיוטרקובסקי", fatherName:"אהרן", death:"2021-05-25", reservedFor:null, depth:1},
+  {id:42, num:42, block:"א", col:16, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שרה פיוטרקובסקי", depth:1},
+  {id:43, num:43, block:"א", col:17, rowi:1, status:"occupied", firstName:" מרים", lastName:"שרעבי", fatherName:"אברהם", death:"2021-03-23", reservedFor:null, depth:1},
+  {id:44, num:44, block:"א", col:18, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"סעדיה שרעבי", depth:1},
+  {id:45, num:45, block:"א", col:19, rowi:1, status:"occupied", firstName:"חיה מוריה", lastName:"בר-און", fatherName:"ישראל", death:"2022-08-23", reservedFor:null, depth:1},
+  {id:46, num:46, block:"א", col:20, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יצחק בר-און", depth:1},
+  {id:47, num:47, block:"א", col:21, rowi:1, status:"occupied", firstName:"אברהם לוסיין", lastName:"זרביב", fatherName:"סוזן", death:null, reservedFor:null, depth:1},
+  {id:48, num:48, block:"א", col:22, rowi:1, status:null, firstName:"מנפרד", lastName:"וייספיש", fatherName:"??", death:"2024-08-29", reservedFor:null, depth:1},
+  {id:49, num:49, block:"א", col:23, rowi:1, status:"occupied", firstName:"אלכסנדר", lastName:"ון לובין", fatherName:null, death:"2021-12-27", reservedFor:null, depth:1},
+  {id:50, num:50, block:"א", col:24, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"וון לובין", depth:1},
+  {id:51, num:51, block:"א", col:25, rowi:1, status:"occupied", firstName:"דניאל", lastName:"להנגהל", fatherName:"יוסף", death:"2021-05-19", reservedFor:null, depth:1},
+  {id:52, num:52, block:"א", col:26, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"נילי להנגהל", depth:1},
+  {id:53, num:53, block:"א", col:27, rowi:1, status:"occupied", firstName:"דבורה", lastName:"רנטלי", fatherName:"מיכאל", death:"2021-05-05", reservedFor:null, depth:1},
+  {id:54, num:54, block:"א", col:28, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"רנטליי", depth:1},
+  {id:55, num:55, block:"א", col:0, rowi:2, status:"occupied", firstName:"פרלה", lastName:"ענטיבי", fatherName:"קמילה", death:"2022-09-08", reservedFor:null, depth:1},
+  {id:56, num:56, block:"א", col:1, rowi:2, status:"occupied", firstName:"אסתר הינדא", lastName:"אביגד", fatherName:"שאול", death:"2023-09-20", reservedFor:null, depth:1},
+  {id:57, num:57, block:"א", col:2, rowi:2, status:"occupied", firstName:"חיים", lastName:"צבירי", fatherName:"יהודה", death:null, reservedFor:null, depth:1},
+  {id:58, num:58, block:"א", col:3, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"פרידה צבירי", depth:1},
+  {id:59, num:59, block:"א", col:4, rowi:2, status:"occupied", firstName:"דולה", lastName:"ליאנדרס", fatherName:"זאב", death:"2023-03-23", reservedFor:null, depth:1},
+  {id:60, num:60, block:"א", col:5, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אירנה גינזבורג", depth:1},
+  {id:61, num:61, block:"א", col:6, rowi:2, status:"occupied", firstName:"נעימה", lastName:"שמש", fatherName:"יעקב", death:"2023-05-24", reservedFor:null, depth:1},
+  {id:62, num:62, block:"א", col:7, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אהובה בן יהודה", depth:1},
+  {id:63, num:63, block:"א", col:8, rowi:2, status:"occupied", firstName:"אלישבע", lastName:"פוקרוי", fatherName:"נחמיה", death:"2023-11-22", reservedFor:null, depth:1},
+  {id:64, num:64, block:"א", col:9, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אבן פוקרוי", depth:1},
+  {id:65, num:65, block:"א", col:10, rowi:2, status:"occupied", firstName:"יהודה הרצל", lastName:"סמדר", fatherName:"ניסים", death:"2023-08-04", reservedFor:null, depth:1},
+  {id:66, num:66, block:"א", col:11, rowi:2, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:67, num:67, block:"א", col:12, rowi:2, status:"occupied", firstName:"אליהו עקיבא", lastName:"טיילור", fatherName:"דוד", death:"2024-03-08", reservedFor:null, depth:1},
+  {id:68, num:68, block:"א", col:13, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שרי טיילור", depth:1},
+  {id:69, num:69, block:"א", col:14, rowi:2, status:"occupied", firstName:"שמואל", lastName:"כהן", fatherName:"יהונתן נפתלי", death:"2024-07-17", reservedFor:null, depth:1},
+  {id:70, num:70, block:"א", col:15, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יוני ורותי כהן", depth:1},
+  {id:71, num:71, block:"א", col:16, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יוני כהן", depth:1},
+  {id:72, num:72, block:"א", col:17, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"רותי כהן", depth:1},
+  {id:73, num:73, block:"א", col:0, rowi:3, status:"occupied", firstName:"דניאל חיים", lastName:"קינן", fatherName:null, death:"2005-01-16", reservedFor:null, depth:1},
+  {id:74, num:74, block:"א", col:1, rowi:3, status:"occupied", firstName:"טובה", lastName:"נויפלד", fatherName:"אריאל", death:"2011-10-18", reservedFor:null, depth:1},
+  {id:75, num:75, block:"א", col:2, rowi:3, status:"occupied", firstName:"יצחק", lastName:"לוי", fatherName:"מאיר", death:"2014-09-04", reservedFor:null, depth:1},
+  {id:76, num:76, block:"א", col:3, rowi:3, status:"occupied", firstName:"מזל", lastName:"לוי", fatherName:"ניסים ", death:"2022-07-01", reservedFor:null, depth:1},
+  {id:77, num:77, block:"א", col:4, rowi:3, status:"occupied", firstName:"צביה", lastName:"סט", fatherName:"רפאל ישראל דב", death:"2012-02-03", reservedFor:null, depth:1},
+  {id:78, num:78, block:"א", col:5, rowi:3, status:"occupied", firstName:"שלומית ", lastName:"ישראל", fatherName:"אברהם", death:"2024-08-12", reservedFor:null, depth:1},
+  {id:79, num:79, block:"א", col:6, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"בינה שפירו", depth:1},
+  {id:80, num:80, block:"א", col:7, rowi:3, status:"occupied", firstName:"אהרון", lastName:"שוקרון", fatherName:"יעקב", death:"2024-08-25", reservedFor:null, depth:1},
+  {id:81, num:81, block:"א", col:8, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שוקרון", depth:1},
+  {id:82, num:82, block:"א", col:9, rowi:3, status:"occupied", firstName:"עמנואל דוד", lastName:"אלאלוף", fatherName:"נסים", death:"2024-10-04", reservedFor:null, depth:1},
+  {id:83, num:83, block:"א", col:10, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"ז'ואל אלאלוף", depth:1},
+  {id:84, num:84, block:"א", col:11, rowi:3, status:"occupied", firstName:"שרה", lastName:"הנאמטה", fatherName:null, death:"2024-10-20", reservedFor:null, depth:1},
+  {id:85, num:85, block:"א", col:12, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"הנאמטה", depth:1},
+  {id:86, num:86, block:"א", col:13, rowi:3, status:"occupied", firstName:"דוד", lastName:"שפירא", fatherName:"מאיר", death:null, reservedFor:null, depth:1},
+  {id:87, num:87, block:"א", col:14, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"בינה שפירו", depth:1},
+  {id:88, num:88, block:"א", col:15, rowi:3, status:"occupied", firstName:"פרלה", lastName:"פרץ", fatherName:"אליהו", death:"2025-09-18", reservedFor:null, depth:1},
+  {id:89, num:89, block:"א", col:16, rowi:3, status:"occupied", firstName:"יעקב", lastName:"פרץ", fatherName:"דוד", death:"2003-12-29", reservedFor:null, depth:1},
+  {id:90, num:90, block:"א", col:17, rowi:3, status:"occupied", firstName:"אליהו", lastName:"פרץ", fatherName:"יעקב", death:"2025-02-09", reservedFor:null, depth:1},
+  {id:91, num:91, block:"א", col:18, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"דבורה פרץ", depth:1},
+  {id:92, num:92, block:"א", col:19, rowi:3, status:"occupied", firstName:"עדינה", lastName:"גנץ", fatherName:"יהושע דב", death:"2025-02-22", reservedFor:null, depth:1},
+  {id:93, num:93, block:"א", col:20, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"הרב משה גנץ", depth:1},
+  {id:94, num:94, block:"א", col:21, rowi:3, status:"occupied", firstName:"סופיה", lastName:"מרטינוב", fatherName:"מאיר", death:"2025-03-03", reservedFor:null, depth:1},
+  {id:95, num:95, block:"א", col:22, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אלישבע מאיר", depth:1},
+  {id:96, num:96, block:"ב", col:0, rowi:0, status:"occupied", firstName:"איבון", lastName:"שהואט", fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:97, num:97, block:"ב", col:1, rowi:0, status:"occupied", firstName:"ניסים חי", lastName:"שהואט", fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:98, num:98, block:"ב", col:2, rowi:0, status:"occupied", firstName:"רפאל", lastName:"זאיונץ", fatherName:"שמעון", death:"2001-09-10", reservedFor:null, depth:1},
+  {id:99, num:99, block:"ב", col:3, rowi:0, status:"occupied", firstName:"נובלה", lastName:"זילוב-זאינוץ", fatherName:"שמואל", death:"2014-04-18", reservedFor:null, depth:1},
+  {id:100, num:100, block:"ב", col:4, rowi:0, status:"occupied", firstName:"בתיה", lastName:"מרמלשטיין", fatherName:"יהושע", death:"2001-12-23", reservedFor:null, depth:1},
+  {id:101, num:101, block:"ב", col:5, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"מרמלשטיין", depth:1},
+  {id:102, num:102, block:"ב", col:6, rowi:0, status:"occupied", firstName:"אהרון", lastName:"קרוגליאק", fatherName:"אברהם יעקב", death:"2002-03-08", reservedFor:null, depth:1},
+  {id:103, num:103, block:"ב", col:7, rowi:0, status:"occupied", firstName:"חיים יחזקאל", lastName:"גוטמן", fatherName:"יעקב משה", death:"2002-06-15", reservedFor:null, depth:1},
+  {id:104, num:104, block:"ב", col:8, rowi:0, status:"occupied", firstName:"יונה", lastName:"המר", fatherName:"אברהם", death:"2003-05-05", reservedFor:null, depth:1},
+  {id:105, num:105, block:"ב", col:9, rowi:0, status:"occupied", firstName:"נתן נח", lastName:"כץ", fatherName:"מאיר", death:"2018-12-28", reservedFor:null, depth:1},
+  {id:106, num:106, block:"ב", col:10, rowi:0, status:"occupied", firstName:"חנה", lastName:"דן", fatherName:"צבי הירש", death:"2005-10-08", reservedFor:null, depth:1},
+  {id:107, num:107, block:"ב", col:11, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"חריף", depth:1},
+  {id:108, num:108, block:"ב", col:12, rowi:0, status:"occupied", firstName:"ישעיהו", lastName:"חריף", fatherName:"חיים יהודה", death:"2016-05-04", reservedFor:null, depth:1},
+  {id:109, num:109, block:"ב", col:13, rowi:0, status:"occupied", firstName:"בועז", lastName:"וסכז", fatherName:"אברהם", death:"2013-03-21", reservedFor:null, depth:1},
+  {id:110, num:110, block:"ב", col:14, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"וסכז", depth:1},
+  {id:111, num:111, block:"ב", col:15, rowi:0, status:"occupied", firstName:"אילה", lastName:"כהן", fatherName:"דוד", death:"2013-03-25", reservedFor:null, depth:1},
+  {id:112, num:112, block:"ב", col:16, rowi:0, status:"occupied", firstName:"מתילדה", lastName:"שוילי", fatherName:"מרדכי", death:"2016-11-13", reservedFor:null, depth:1},
+  {id:113, num:113, block:"ב", col:17, rowi:0, status:"occupied", firstName:"בניה", lastName:"שוקרון", fatherName:"מעוז", death:"2016-05-09", reservedFor:null, depth:1},
+  {id:114, num:114, block:"ב", col:18, rowi:0, status:"occupied", firstName:"יוסף משה", lastName:"אלקובי", fatherName:"חביב", death:"2016-07-22", reservedFor:null, depth:1},
+  {id:115, num:115, block:"ב", col:19, rowi:0, status:"occupied", firstName:"שמואל", lastName:"האס", fatherName:"יהודה", death:"2016-02-16", reservedFor:null, depth:1},
+  {id:116, num:116, block:"ב", col:20, rowi:0, status:"occupied", firstName:"בטי", lastName:"הרמן", fatherName:"אברהם", death:"2016-03-03", reservedFor:null, depth:1},
+  {id:117, num:117, block:"ב", col:0, rowi:1, status:"occupied", firstName:"עדי יוסף", lastName:"איצקוביץ", fatherName:"אליעזר", death:"2019-02-21", reservedFor:null, depth:1},
+  {id:118, num:118, block:"ב", col:1, rowi:1, status:"occupied", firstName:"רבקה", lastName:"כהן", fatherName:"שלום", death:"2019-02-27", reservedFor:null, depth:1},
+  {id:119, num:119, block:"ב", col:2, rowi:1, status:"occupied", firstName:"תחיה", lastName:"קנריק", fatherName:null, death:"2002-12-08", reservedFor:null, depth:1},
+  {id:120, num:120, block:"ב", col:3, rowi:1, status:"occupied", firstName:"אנה", lastName:"קוגן", fatherName:"דוד", death:null, reservedFor:null, depth:1},
+  {id:121, num:121, block:"ב", col:4, rowi:1, status:"occupied", firstName:"פסח יהודה", lastName:"בורר", fatherName:"מרדכי", death:"2018-01-13", reservedFor:null, depth:1},
+  {id:122, num:122, block:"ב", col:5, rowi:1, status:"occupied", firstName:"מאיר", lastName:"בלמס", fatherName:"מכלוף", death:"2007-10-22", reservedFor:null, depth:1},
+  {id:123, num:123, block:"ב", col:6, rowi:1, status:"occupied", firstName:"בנימין ", lastName:"ישראל", fatherName:"אברהם", death:null, reservedFor:null, depth:1},
+  {id:124, num:124, block:"ב", col:7, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"בורר", depth:1},
+  {id:125, num:125, block:"ב", col:8, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"לאה כהן", depth:1},
+  {id:126, num:126, block:"ב", col:9, rowi:1, status:"occupied", firstName:"צבי", lastName:"כהן", fatherName:"שלמה זלמן", death:"2018-06-21", reservedFor:null, depth:1},
+  {id:127, num:127, block:"ב", col:10, rowi:1, status:"occupied", firstName:"שמואל", lastName:"אייזנבך", fatherName:"אברהם יצחק מאיר", death:"2022-07-26", reservedFor:null, depth:1},
+  {id:128, num:128, block:"ב", col:11, rowi:1, status:"occupied", firstName:"רבקה", lastName:"אייזנבך", fatherName:"דוד", death:"2008-06-14", reservedFor:null, depth:1},
+  {id:129, num:129, block:"ב", col:12, rowi:1, status:"occupied", firstName:"שושנה", lastName:"יונסי", fatherName:"אברהם", death:"2009-11-19", reservedFor:null, depth:1},
+  {id:130, num:130, block:"ב", col:13, rowi:1, status:"occupied", firstName:"פנחס", lastName:"גרה", fatherName:"אברהם", death:"2013-10-14", reservedFor:null, depth:1},
+  {id:131, num:131, block:"ב", col:14, rowi:1, status:"occupied", firstName:"אליהו", lastName:"מתוק", fatherName:"יהושע ", death:"2014-11-22", reservedFor:null, depth:1},
+  {id:132, num:132, block:"ב", col:15, rowi:1, status:"occupied", firstName:"לידיה", lastName:"מתוק", fatherName:"שמעון", death:"2023-10-01", reservedFor:null, depth:1},
+  {id:133, num:133, block:"ב", col:16, rowi:1, status:"occupied", firstName:"דרורה", lastName:"ברעם", fatherName:"משה מנחם", death:"2016-11-23", reservedFor:null, depth:1},
+  {id:134, num:134, block:"ב", col:17, rowi:1, status:"occupied", firstName:"ציפורה", lastName:"דביולר", fatherName:"לוי", death:"2016-11-29", reservedFor:null, depth:1},
+  {id:135, num:135, block:"ב", col:18, rowi:1, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"דביולר", depth:1},
+  {id:136, num:136, block:"ב", col:19, rowi:1, status:"occupied", firstName:"נתנאל חיים", lastName:"שלו", fatherName:"אלעזר אפרים", death:"2018-06-15", reservedFor:null, depth:1},
+  {id:137, num:137, block:"ב", col:20, rowi:1, status:"occupied", firstName:"שמעון", lastName:"ולדרמה פרץ", fatherName:"אברהם", death:"2016-04-26", reservedFor:null, depth:1},
+  {id:138, num:138, block:"ב", col:0, rowi:2, status:"occupied", firstName:"בשמת", lastName:"ספרא", fatherName:"דוד", death:null, reservedFor:null, depth:1},
+  {id:139, num:139, block:"ב", col:1, rowi:2, status:"occupied", firstName:"רוחמה", lastName:"פלסר", fatherName:"עמנואל דוד", death:"1991-04-06", reservedFor:null, depth:1},
+  {id:140, num:140, block:"ב", col:2, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"מדיז'ינסקי", depth:1},
+  {id:141, num:141, block:"ב", col:3, rowi:2, status:"occupied", firstName:"עזריאל צבי", lastName:"מדיז'ינסקי", fatherName:"שמואל", death:"2011-08-14", reservedFor:null, depth:1},
+  {id:142, num:142, block:"ב", col:4, rowi:2, status:"occupied", firstName:"אמיתי צדוק", lastName:"קאפח", fatherName:"יוסף", death:null, reservedFor:null, depth:1},
+  {id:143, num:143, block:"ב", col:5, rowi:2, status:"occupied", firstName:"אהד", lastName:"בכרך", fatherName:"יוסף אריה", death:"1995-07-18", reservedFor:null, depth:1},
+  {id:144, num:144, block:"ב", col:6, rowi:2, status:"occupied", firstName:"אפרים", lastName:"צור", fatherName:"יואל", death:"1996-12-12", reservedFor:null, depth:1},
+  {id:145, num:145, block:"ב", col:7, rowi:2, status:"occupied", firstName:"איטה", lastName:"צור", fatherName:"משה יודא", death:"1996-12-12", reservedFor:null, depth:1},
+  {id:146, num:146, block:"ב", col:8, rowi:2, status:null, firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:147, num:147, block:"ב", col:9, rowi:2, status:null, firstName:"רפאל משה", lastName:"רווח", fatherName:"לורה", death:"2007-02-14", reservedFor:null, depth:1},
+  {id:148, num:148, block:"ב", col:10, rowi:2, status:"occupied", firstName:"ישורון", lastName:"ויפה", fatherName:"יונה", death:null, reservedFor:null, depth:1},
+  {id:149, num:149, block:"ב", col:11, rowi:2, status:"occupied", firstName:"צפורה", lastName:"ויפה", fatherName:"שרה", death:"2008-07-24", reservedFor:null, depth:1},
+  {id:150, num:150, block:"ב", col:12, rowi:2, status:"occupied", firstName:"חנה מלכה", lastName:"סמיואלס", fatherName:"יוחנן", death:"2014-09-22", reservedFor:null, depth:1},
+  {id:151, num:151, block:"ב", col:13, rowi:2, status:"occupied", firstName:"ידידה", lastName:"יורם", fatherName:"שרה", death:"2015-11-23", reservedFor:null, depth:1},
+  {id:152, num:152, block:"ב", col:14, rowi:2, status:"occupied", firstName:"חנה אביגיל", lastName:"רוזנטל", fatherName:"שלמה", death:"2016-01-17", reservedFor:null, depth:1},
+  {id:153, num:153, block:"ב", col:15, rowi:2, status:"occupied", firstName:"פולינה", lastName:"טרנוב", fatherName:"ולנטין", death:"2016-02-10", reservedFor:null, depth:1},
+  {id:154, num:154, block:"ב", col:16, rowi:2, status:"occupied", firstName:"רבקה ריבה", lastName:"בקשייב", fatherName:"יצחק", death:"2017-10-14", reservedFor:null, depth:1},
+  {id:155, num:155, block:"ב", col:17, rowi:2, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"דרייפוס", depth:1},
+  {id:156, num:156, block:"ב", col:18, rowi:2, status:"occupied", firstName:"רייזל", lastName:"דרייפוס", fatherName:"יוסף", death:"2017-05-01", reservedFor:null, depth:1},
+  {id:157, num:157, block:"ב", col:19, rowi:2, status:"occupied", firstName:"ורה ", lastName:"איוושקוב", fatherName:"מיכאל", death:"2016-10-26", reservedFor:null, depth:1},
+  {id:158, num:158, block:"ב", col:0, rowi:3, status:"occupied", firstName:"נעם", lastName:"וינברג", fatherName:"צבי", death:null, reservedFor:null, depth:1},
+  {id:159, num:159, block:"ב", col:1, rowi:3, status:"occupied", firstName:"דן", lastName:"הר שפי", fatherName:"דב דוד", death:"2007-02-06", reservedFor:null, depth:1},
+  {id:160, num:160, block:"ב", col:2, rowi:3, status:"occupied", firstName:"ברוך צבי", lastName:"שוורץ", fatherName:"יוסף מאיר", death:"2011-07-16", reservedFor:null, depth:1},
+  {id:161, num:161, block:"ב", col:3, rowi:3, status:"occupied", firstName:"אברהם שמואל", lastName:"ספרא", fatherName:"חיים מרדכי", death:"2018-02-23", reservedFor:null, depth:1},
+  {id:162, num:162, block:"ב", col:4, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יפה ספרא", depth:1},
+  {id:163, num:163, block:"ב", col:5, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"רוזנבוים", depth:1},
+  {id:164, num:164, block:"ב", col:6, rowi:3, status:"occupied", firstName:"חנה", lastName:"רוזנבוים", fatherName:"יעקב דניאל", death:"2011-08-25", reservedFor:null, depth:1},
+  {id:165, num:165, block:"ב", col:7, rowi:3, status:"occupied", firstName:"תהילה בלהה", lastName:"מלאכי", fatherName:"ניר", death:"2010-06-29", reservedFor:null, depth:1},
+  {id:166, num:166, block:"ב", col:8, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שמריה", depth:1},
+  {id:167, num:167, block:"ב", col:9, rowi:3, status:"occupied", firstName:"יעקב מאיר", lastName:"שמריה", fatherName:"אברהם", death:"2009-09-30", reservedFor:null, depth:1},
+  {id:168, num:168, block:"ב", col:10, rowi:3, status:"occupied", firstName:"יהודה זלמן", lastName:"האנמטה", fatherName:"אברהם", death:"2009-01-11", reservedFor:null, depth:1},
+  {id:169, num:169, block:"ב", col:11, rowi:3, status:"occupied", firstName:"דבורה", lastName:"פרקש", fatherName:"יואל", death:"2016-08-15", reservedFor:null, depth:1},
+  {id:170, num:170, block:"ב", col:12, rowi:3, status:"occupied", firstName:"שלמה", lastName:"פרקש", fatherName:"דוד", death:"2021-01-16", reservedFor:null, depth:1},
+  {id:171, num:171, block:"ב", col:13, rowi:3, status:"occupied", firstName:"חגית", lastName:"ספרא", fatherName:"ישראל", death:"2017-11-04", reservedFor:null, depth:1},
+  {id:172, num:172, block:"ב", col:14, rowi:3, status:"occupied", firstName:"רחל מרים", lastName:"צחי", fatherName:"מנחם מנדל מרדכי", death:"2016-08-28", reservedFor:null, depth:1},
+  {id:173, num:173, block:"ב", col:15, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"צחי", depth:1},
+  {id:174, num:174, block:"ב", col:16, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"דוד פרנקל", depth:1},
+  {id:175, num:175, block:"ב", col:17, rowi:3, status:"occupied", firstName:"טובה", lastName:"פרנקל", fatherName:"ישכר אריה", death:"2017-09-28", reservedFor:null, depth:1},
+  {id:176, num:176, block:"ב", col:18, rowi:3, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"קולטה", depth:1},
+  {id:177, num:177, block:"ב", col:19, rowi:3, status:"occupied", firstName:"בועז", lastName:"קולטה", fatherName:"אברהם", death:"2016-12-15", reservedFor:null, depth:1},
+  {id:178, num:178, block:"ג", col:0, rowi:0, status:"occupied", firstName:"משה", lastName:"שרעבי", fatherName:"יוסף", death:"2025-03-30", reservedFor:null, depth:1},
+  {id:179, num:179, block:"ג", col:1, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:180, num:180, block:"ג", col:2, rowi:0, status:"occupied", firstName:"מאיר", lastName:"איזמן", fatherName:"שמואל דב", death:"2025-04-19", reservedFor:null, depth:1},
+  {id:181, num:181, block:"ג", col:3, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אסתי איזמן", depth:1},
+  {id:182, num:182, block:"ג", col:4, rowi:0, status:"occupied", firstName:"אליהו", lastName:"מלול", fatherName:"גבריאל", death:"2025-04-23", reservedFor:null, depth:1},
+  {id:183, num:183, block:"ג", col:5, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"יעל מלול", depth:1},
+  {id:184, num:184, block:"ג", col:6, rowi:0, status:"occupied", firstName:"יצחק", lastName:"ספרא", fatherName:"אליהו", death:"2025-05-11", reservedFor:null, depth:1},
+  {id:185, num:185, block:"ג", col:7, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"צילה ספרא", depth:1},
+  {id:186, num:186, block:"ג", col:8, rowi:0, status:"occupied", firstName:"רפאל ישראל דב", lastName:"סט", fatherName:"יצחק טוביה", death:"2025-11-30", reservedFor:null, depth:1},
+  {id:187, num:187, block:"ג", col:9, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:188, num:188, block:"ג", col:10, rowi:0, status:"occupied", firstName:"אילנה פנה", lastName:"לרנר", fatherName:"יעקב מאיר", death:"2026-01-22", reservedFor:null, depth:1},
+  {id:189, num:189, block:"ג", col:11, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"לרנר", depth:1},
+  {id:190, num:190, block:"ג", col:12, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"טוביה לרנר", depth:1},
+  {id:191, num:191, block:"ג", col:13, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"שרי לרנר", depth:1},
+  {id:192, num:192, block:"ג", col:14, rowi:0, status:"occupied", firstName:"אברהם", lastName:"צוברי", fatherName:"שוכר", death:"2026-03-18", reservedFor:null, depth:1},
+  {id:193, num:193, block:"ג", col:15, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:194, num:194, block:"ג", col:16, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:195, num:195, block:"ג", col:17, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:196, num:196, block:"ג", col:18, rowi:0, status:"occupied", firstName:"יוסף יהודה", lastName:"סגל", fatherName:"משה מרדכי", death:"2026-04-05", reservedFor:null, depth:1},
+  {id:197, num:197, block:"ג", col:19, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"אורית סגל", depth:1},
+  {id:198, num:198, block:"ג", col:20, rowi:0, status:"occupied", firstName:"הנרי", lastName:"יקרסון", fatherName:"נחמן", death:"2026-05-06", reservedFor:null, depth:1},
+  {id:199, num:199, block:"ג", col:21, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"נעמי יקרסון", depth:1},
+  {id:200, num:200, block:"ג", col:22, rowi:0, status:"occupied", firstName:"נחליה", lastName:"קוניגסברג", fatherName:"אהרן", death:"2026-06-02", reservedFor:null, depth:1},
+  {id:201, num:201, block:"ג", col:23, rowi:0, status:"reserved", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:"קוניגסברג", depth:1},
+  {id:202, num:202, block:"ג", col:24, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:203, num:203, block:"ג", col:25, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:204, num:204, block:"ג", col:26, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:205, num:205, block:"ג", col:27, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:206, num:206, block:"ג", col:28, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:207, num:207, block:"ג", col:29, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:208, num:208, block:"ג", col:30, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:209, num:209, block:"ג", col:31, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:210, num:210, block:"ג", col:32, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:211, num:211, block:"ג", col:33, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:212, num:212, block:"ג", col:34, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:213, num:213, block:"ג", col:35, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:214, num:214, block:"ג", col:36, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:215, num:215, block:"ג", col:37, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:216, num:216, block:"ג", col:38, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:217, num:217, block:"ג", col:39, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:218, num:218, block:"ג", col:40, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:219, num:219, block:"ג", col:41, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:220, num:220, block:"ג", col:42, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:221, num:221, block:"ג", col:43, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:222, num:222, block:"ג", col:44, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:223, num:223, block:"ג", col:45, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:224, num:224, block:"ג", col:46, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:225, num:225, block:"ג", col:47, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:226, num:226, block:"ג", col:48, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:227, num:227, block:"ג", col:49, rowi:0, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:228, num:228, block:"ג", col:0, rowi:1, status:"occupied", firstName:"משה", lastName:"כהן", fatherName:"ששון", death:"2026-01-01", reservedFor:null, depth:1},
+  {id:229, num:229, block:"ג", col:1, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:230, num:230, block:"ג", col:2, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:231, num:231, block:"ג", col:3, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:232, num:232, block:"ג", col:4, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:233, num:233, block:"ג", col:5, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:234, num:234, block:"ג", col:6, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:235, num:235, block:"ג", col:7, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:236, num:236, block:"ג", col:8, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:237, num:237, block:"ג", col:9, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:238, num:238, block:"ג", col:10, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:239, num:239, block:"ג", col:11, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:240, num:240, block:"ג", col:12, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:241, num:241, block:"ג", col:13, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:242, num:242, block:"ג", col:14, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:243, num:243, block:"ג", col:15, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:244, num:244, block:"ג", col:16, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:245, num:245, block:"ג", col:17, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:246, num:246, block:"ג", col:18, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:247, num:247, block:"ג", col:19, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:248, num:248, block:"ג", col:20, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:249, num:249, block:"ג", col:21, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:250, num:250, block:"ג", col:22, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:251, num:251, block:"ג", col:23, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:252, num:252, block:"ג", col:24, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:253, num:253, block:"ג", col:25, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:254, num:254, block:"ג", col:26, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:255, num:255, block:"ג", col:27, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:256, num:256, block:"ג", col:28, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:257, num:257, block:"ג", col:29, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:258, num:258, block:"ג", col:30, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:259, num:259, block:"ג", col:31, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:260, num:260, block:"ג", col:32, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:261, num:261, block:"ג", col:33, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:262, num:262, block:"ג", col:34, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:263, num:263, block:"ג", col:35, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:264, num:264, block:"ג", col:36, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:265, num:265, block:"ג", col:37, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:266, num:266, block:"ג", col:38, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:267, num:267, block:"ג", col:39, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:268, num:268, block:"ג", col:40, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:269, num:269, block:"ג", col:41, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:270, num:270, block:"ג", col:42, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:271, num:271, block:"ג", col:43, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:272, num:272, block:"ג", col:44, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:273, num:273, block:"ג", col:45, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:274, num:274, block:"ג", col:46, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:275, num:275, block:"ג", col:47, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:276, num:276, block:"ג", col:48, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
+  {id:277, num:277, block:"ג", col:49, rowi:1, status:"vacant", firstName:null, lastName:null, fatherName:null, death:null, reservedFor:null, depth:1},
 ];
 
 /* ============ LIVE DATA ============ */
-let graves = FALLBACK_GRAVES.slice();
+// שם מלא לתצוגה/חיפוש - נגזר תמיד משם פרטי + שם משפחה (השדות האמיתיים במקור הנתונים).
+function deriveName(firstName, lastName){
+  const f = (firstName||'').trim(), l = (lastName||'').trim();
+  if(f && l) return f + ' ' + l;
+  return f || l || null;
+}
+function withDerivedName(g){
+  return { ...g, name: deriveName(g.firstName, g.lastName) };
+}
+let graves = FALLBACK_GRAVES.map(withDerivedName);
 let dataSource = 'fallback'; // 'live' after a successful fetch
 
 async function loadGraves(){
@@ -1134,18 +1219,29 @@ async function loadGraves(){
     const res = await fetch(API_URL);
     const data = await res.json();
     if(data.success && Array.isArray(data.graves)){
-      graves = data.graves.map(g => ({
-        id: g.id, block: g.block, col: g.col, rowi: g.rowi,
-        num: g.num===''||g.num===undefined ? null : g.num,
-        status: (g.status==='שמור') ? 'reserved' : (g.status==='reserved' ? 'reserved' : 'occupied'),
-        name: g.name || null,
-        death: g.death || null,
-        description: g.description || null,
-        linkUrl: g.linkUrl || null,
-        linkText: g.linkText || null,
-        depth: g.depth ? Number(g.depth) : 1,
-        photo: g.photo || null
-      }));
+      graves = data.graves.map(g => {
+        const firstName = g.firstName || null, lastName = g.lastName || null;
+        let status = null;
+        if(g.status === 'מלא') status = 'occupied';
+        else if(g.status === 'שמור') status = 'reserved';
+        else if(g.status === 'פנוי') status = 'vacant';
+        // סטטוס ריק/לא מזוהה נשאר null במכוון - יטופל כ"לא זמין לציבור" אך יסומן לתשומת לב בממשק הניהול
+        return {
+          id: g.id, block: g.block, col: g.col, rowi: g.rowi,
+          num: g.num===''||g.num===undefined ? null : g.num,
+          status: status,
+          firstName, lastName,
+          name: deriveName(firstName, lastName),
+          fatherName: g.fatherName || null,
+          reservedFor: g.reservedFor || null,
+          death: g.death || null,
+          description: g.description || null,
+          linkUrl: g.linkUrl || null,
+          linkText: g.linkText || null,
+          depth: g.depth ? Number(g.depth) : 1,
+          photo: g.photo || null
+        };
+      });
       dataSource = 'live';
     }
   } catch(err){
@@ -1154,7 +1250,8 @@ async function loadGraves(){
   }
 }
 
-const STATIC_BLOCK_DIMS = {"ב": {"cols": 3, "rows": 12}, "ג": {"cols": 4, "rows": 13}, "א": {"cols": 8, "rows": 9}, "ד": {"cols": 4, "rows": 8}, "ה": {"cols": 11, "rows": 2}};
+
+const STATIC_BLOCK_DIMS = {"א": {"cols": 29, "rows": 4}, "ב": {"cols": 21, "rows": 4}, "ג": {"cols": 50, "rows": 2}};
 function getBlockDims(){
   const dims = {};
   Object.keys(STATIC_BLOCK_DIMS).forEach(k => dims[k] = {cols:0, rows:0});
@@ -1167,26 +1264,18 @@ function getBlockDims(){
 }
 
 const CELL = 26;
-/* best-effort family/given-name lookup, built from the source spreadsheet's
-   "ריכוז נפטרים" sheet (where the two were listed in separate columns).
-   Only covers a subset of names — for anything not found here we fall back
-   to the full display name, and the person can always edit it before generating. */
-const FIRST_NAME_LOOKUP = {"צור איטה": "איטה", "איטה צור": "איטה", "שורץ ברוך": "ברוך", "ברוך שורץ": "ברוך", "מדזינסקי עזריאל צבי": "עזריאל צבי", "עזריאל צבי מדזינסקי": "עזריאל צבי", "נויפלד טובה": "טובה", "טובה נויפלד": "טובה", "ספרא שמואל": "שמואל", "שמואל ספרא": "שמואל", "ספרא בשמת": "בשמת", "בשמת ספרא": "בשמת", "כץ נתן": "נתן", "נתן כץ": "נתן", "שהואט נסים": "נסים", "נסים שהואט": "נסים", "אביצור חיים": "חיים", "חיים אביצור": "חיים", "פיוטרקובסקי חנוך": "חנוך", "חנוך פיוטרקובסקי": "חנוך", "בראון מוריה": "מוריה", "מוריה בראון": "מוריה", "זרביב אלברט אברהם": "אלברט אברהם", "אלברט אברהם זרביב": "אלברט אברהם", "ענתבי פרלה": "פרלה", "פרלה ענתבי": "פרלה", "לוי מזל": "מזל", "מזל לוי": "מזל", "איזנבך שמואל": "שמואל", "שמואל איזנבך": "שמואל", "צבירי חיים": "חיים", "חיים צבירי": "חיים"};
-function firstNameGuess(fullName){
-  if(!fullName) return fullName;
-  return FIRST_NAME_LOOKUP[fullName] || fullName;
-}
+// חלקות א/ב/ג במיפוי החדש הן רחבות וקצרות (עד 50 טורים, 2-4 שורות) - הבלוקים מוצגים
+// אחד מתחת לשני (במקום זה לצד זה כבמיפוי הישן), כדי שכולם ייכנסו למפה בצורה קריאה.
 const BLOCK_LAYOUT = {
-  'א': {x:30,  y:50, label:'חלקה א׳ (כפולים)'},
-  'ב': {x:288, y:50, label:'חלקה ב׳'},
-  'ג': {x:416, y:50, label:"חלקה ג'"},
-  'ד': {x:570, y:50, label:'חלקה ד׳'},
-  'ה': {x:724, y:50, label:'חלקה ה׳ (חדשה)'}
+  'א': {x:30, y:60,  label:'חלקה א׳'},
+  'ב': {x:30, y:204, label:'חלקה ב׳'},
+  'ג': {x:30, y:348, label:'חלקה ג׳'}
 };
 function graveXY(g){
   const bl = BLOCK_LAYOUT[g.block];
   return { x: bl.x + g.col*CELL + CELL/2, y: bl.y + g.rowi*CELL + CELL/2 };
 }
+
 function spotKey(g){ return g.block+'_'+g.col+'_'+g.rowi; }
 function getSpots(){
   const map = {};
@@ -1205,7 +1294,15 @@ function spotOccupants(spotGraves){
   return spotGraves.filter(g => g.status==='occupied');
 }
 function graveLabel(g){
-  return g.status==='reserved' ? 'שמור' : (g.name || 'ללא שם רשום');
+  // תווית לציבור - שמור, פנוי, וסטטוס לא-מוגדר נראים כולם אותו הדבר (בלי שם, בלי פרטים)
+  return g.status!=='occupied' ? 'שמור' : (g.name || 'ללא שם רשום');
+}
+function adminGraveLabel(g){
+  // תווית לממשק הניהול - חושפת את הסטטוס האמיתי ולמי המקום שמור, אם רלוונטי
+  if(g.status==='occupied') return g.name || 'ללא שם רשום';
+  if(g.status==='reserved') return 'שמור' + (g.reservedFor ? ' — ' + g.reservedFor : '');
+  if(g.status==='vacant') return 'פנוי';
+  return '⚠ סטטוס לא הוגדר';
 }
 function formatDate(iso){
   if(!iso) return null;
@@ -1485,7 +1582,7 @@ function performSearch(){
       <div class="result-card" onclick="openDetail(${g.id})">
         <div>
           <div class="result-name">${graveLabel(g)}</div>
-          <div class="result-dates">${g.status==='reserved' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
+          <div class="result-dates">${g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
         </div>
         <div class="result-loc">חלקה ${g.block}</div>
       </div>`).join('');
@@ -1503,7 +1600,7 @@ function openDetail(id){
   if(g.photo){ photoEl.src = g.photo; photoEl.style.display='block'; }
   else { photoEl.style.display='none'; photoEl.removeAttribute('src'); }
   document.getElementById('d-name').textContent = graveLabel(g);
-  document.getElementById('d-years').textContent = g.status==='reserved' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום');
+  document.getElementById('d-years').textContent = g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום');
   document.getElementById('d-block').textContent = g.block;
   document.getElementById('d-plot').textContent = g.col+1;
   document.getElementById('d-row').textContent = g.rowi+1;
@@ -1538,7 +1635,7 @@ function openDetail(id){
   }
 
   const prayerBtn = document.querySelector('.psalms-link');
-  if(prayerBtn) prayerBtn.style.display = g.status==='reserved' ? 'none' : 'flex';
+  if(prayerBtn) prayerBtn.style.display = g.status!=='occupied' ? 'none' : 'flex';
 
   document.getElementById('mini-map-holder').innerHTML = buildMapSVG({
     highlightId:id, mini:true, focusOn:g
@@ -1595,11 +1692,11 @@ function reportGraveIssue(){
 /* ============ MAP SVG BUILDER ============ */
 function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
   const focusXY = focusOn ? graveXY(focusOn) : null;
-  const vb = focusXY ? `${focusXY.x-130} ${focusXY.y-110} 260 220` : `0 0 1040 430`;
-  const w = mini ? '100%' : 1040;
+  const vb = focusXY ? `${focusXY.x-130} ${focusXY.y-110} 260 220` : `0 0 1360 460`;
+  const w = mini ? '100%' : 1360;
 
-  let svg = `<svg id="${mini?'mini-map-svg':'full-map-svg'}" viewBox="${vb}" width="${w}" style="width:${mini?'100%':'1040px'};max-width:${mini?'100%':'none'};height:auto;display:block;">`;
-  svg += `<rect x="0" y="0" width="1040" height="430" fill="#F1EDE0"/>`;
+  let svg = `<svg id="${mini?'mini-map-svg':'full-map-svg'}" viewBox="${vb}" width="${w}" style="width:${mini?'100%':'1360px'};max-width:${mini?'100%':'none'};height:auto;display:block;">`;
+  svg += `<rect x="0" y="0" width="1360" height="460" fill="#F1EDE0"/>`;
 
   Object.entries(BLOCK_LAYOUT).forEach(([key,bl])=>{
     const dim = getBlockDims()[key];
@@ -1609,7 +1706,7 @@ function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
   });
 
   // cypress trees decoration near top
-  const trees = [ [60,18],[380,18],[700,18],[980,18] ];
+  const trees = [ [80,18],[450,18],[850,18],[1250,18] ];
   trees.forEach(([tx,ty])=>{
     svg += `<path d="M${tx} ${ty} l6 14 h-12 z M${tx} ${ty+5} l8 16 h-16 z" fill="#7C9268"/><rect x="${tx-1.5}" y="${ty+19}" width="3" height="6" fill="#B7AE96"/>`;
   });
@@ -1670,7 +1767,7 @@ function openSpotPopup(key){
     document.getElementById('pop-name').textContent = graveLabel(g0);
     link.style.display='inline-block';
     link.onclick = ()=>openDetail(g0.id);
-    prayerLink.style.display = g0.status==='reserved' ? 'none' : 'inline-block';
+    prayerLink.style.display = g0.status!=='occupied' ? 'none' : 'inline-block';
     prayerLink.onclick = ()=>openPrayerSheet(g0.id);
   } else {
     document.getElementById('pop-name').innerHTML = occupants.map(g =>
@@ -1694,18 +1791,18 @@ function closePopup(){
 /* ============ PRAYER SHEET BRIDGE ============ */
 function openPrayerSheet(id){
   const g = graves.find(x=>x.id===id);
-  if(!g || g.status==='reserved' || !g.name) return;
+  if(!g || g.status!=='occupied' || !g.name) return;
   currentHighlight = id;
   showView('view-prayer');
   setTimeout(()=>{
-    if(window.mpPrefill) window.mpPrefill(firstNameGuess(g.name), 'm');
+    if(window.mpPrefill) window.mpPrefill(g.firstName || g.name, 'm', g.fatherName || '');
   }, 30);
 }
 function goPrayerDirect(){
   currentHighlight = null;
   showView('view-prayer');
   setTimeout(()=>{
-    if(window.mpPrefill) window.mpPrefill('', 'm');
+    if(window.mpPrefill) window.mpPrefill('', 'm', '');
   }, 30);
 }
 
@@ -1907,16 +2004,23 @@ function csvEscape(val){
   if(/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
   return s;
 }
+function statusHebrew(status){
+  if(status==='occupied') return 'מלא';
+  if(status==='reserved') return 'שמור';
+  if(status==='vacant') return 'פנוי';
+  return 'לא הוגדר';
+}
 function adminExportCSV(){
   if(!graves.length){ alert('אין נתונים לייצוא.'); return; }
-  const headers = ['id','חלקה','טור','שורה','מספר קבר','סטטוס','שם','תאריך פטירה (לועזי)','תאריך פטירה (עברי)','עומק','תיאור','קישור תמונה'];
+  const headers = ['id','חלקה','טור','שורה','מספר קבר','סטטוס','שם פרטי','שם משפחה','שם האב','שמור עבור','תאריך פטירה (לועזי)','תאריך פטירה (עברי)','עומק','תיאור','קישור תמונה'];
   const rows = graves
     .slice()
     .sort((a,b) => (a.block+a.col+a.rowi).localeCompare(b.block+b.col+b.rowi))
     .map(g => [
       g.id, g.block, g.col+1, g.rowi+1, g.num||'',
-      g.status==='reserved'?'שמור':'תפוס',
-      g.name||'', g.death||'', formatDate(g.death)||'',
+      statusHebrew(g.status),
+      g.firstName||'', g.lastName||'', g.fatherName||'', g.reservedFor||'',
+      g.death||'', formatDate(g.death)||'',
       g.depth||1, g.description||'', g.photo||''
     ]);
   const csvLines = [headers, ...rows].map(r => r.map(csvEscape).join(','));
@@ -1946,7 +2050,7 @@ function renderAdminList(){
   list.innerHTML = items.map(g => `
     <div class="admin-list-item" onclick="adminEditRecord(${g.id})">
       <div>
-        <div class="admin-list-name">${graveLabel(g)}</div>
+        <div class="admin-list-name">${adminGraveLabel(g)}</div>
         <div class="admin-list-loc">חלקה ${g.block} · טור ${g.col+1} · שורה ${g.rowi+1}${g.num?' · קבר '+g.num:''}</div>
       </div>
       <span style="color:var(--muted);font-size:18px;">›</span>
@@ -1958,11 +2062,25 @@ function adminViewPublicCard(){
   openDetail(adminEditingId);
 }
 
+function adminUpdateStatusFields(){
+  const checked = document.getElementById('admin-status-group').querySelector('input:checked');
+  const status = checked ? checked.value : null;
+  const showName = status === 'occupied';
+  document.getElementById('admin-name-field').style.display = showName ? 'block' : 'none';
+  document.getElementById('admin-lastname-field').style.display = showName ? 'block' : 'none';
+  document.getElementById('admin-fathername-field').style.display = showName ? 'block' : 'none';
+  document.getElementById('admin-reservedfor-field').style.display = status === 'reserved' ? 'block' : 'none';
+}
+
 function adminNewRecord(){
   adminEditingId = null;
   document.getElementById('admin-status-group').querySelector('input[value="occupied"]').checked = true;
   document.getElementById('admin-depth-group').querySelector('input[value="1"]').checked = true;
-  document.getElementById('admin-name').value = '';
+  document.getElementById('admin-firstname').value = '';
+  document.getElementById('admin-lastname').value = '';
+  document.getElementById('admin-fathername').value = '';
+  document.getElementById('admin-reservedfor').value = '';
+  adminUpdateStatusFields();
   document.getElementById('admin-block').value = 'א';
   document.getElementById('admin-col').value = 0;
   document.getElementById('admin-rowi').value = 0;
@@ -1983,9 +2101,15 @@ function adminEditRecord(id){
   const g = graves.find(x => x.id === id);
   if(!g) return;
   adminEditingId = id;
-  document.getElementById('admin-status-group').querySelector(`input[value="${g.status}"]`).checked = true;
+  const statusInput = g.status ? document.getElementById('admin-status-group').querySelector(`input[value="${g.status}"]`) : null;
+  document.getElementById('admin-status-group').querySelectorAll('input').forEach(el => el.checked = false);
+  if(statusInput) statusInput.checked = true;
   document.getElementById('admin-depth-group').querySelector(`input[value="${g.depth||1}"]`).checked = true;
-  document.getElementById('admin-name').value = g.name || '';
+  document.getElementById('admin-firstname').value = g.firstName || '';
+  document.getElementById('admin-lastname').value = g.lastName || '';
+  document.getElementById('admin-fathername').value = g.fatherName || '';
+  document.getElementById('admin-reservedfor').value = g.reservedFor || '';
+  adminUpdateStatusFields();
   document.getElementById('admin-block').value = g.block;
   document.getElementById('admin-col').value = g.col;
   document.getElementById('admin-rowi').value = g.rowi;
@@ -2040,10 +2164,17 @@ async function apiWrite(action, extra){
 async function adminSaveRecord(){
   const errEl = document.getElementById('admin-form-error');
   errEl.style.display = 'none';
-  const status = document.getElementById('admin-status-group').querySelector('input:checked').value;
-  const name = document.getElementById('admin-name').value.trim();
-  if(status === 'occupied' && !name){
-    errEl.textContent = 'יש להזין שם עבור קבר תפוס.';
+  const statusChecked = document.getElementById('admin-status-group').querySelector('input:checked');
+  const status = statusChecked ? statusChecked.value : '';
+  const firstName = document.getElementById('admin-firstname').value.trim();
+  const lastName = document.getElementById('admin-lastname').value.trim();
+  if(!status){
+    errEl.textContent = 'יש לבחור סטטוס (מלא / שמור / פנוי).';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(status === 'occupied' && !firstName && !lastName){
+    errEl.textContent = 'יש להזין שם עבור קבר מלא.';
     errEl.style.display = 'block';
     return;
   }
@@ -2052,8 +2183,11 @@ async function adminSaveRecord(){
     col: Number(document.getElementById('admin-col').value) || 0,
     rowi: Number(document.getElementById('admin-rowi').value) || 0,
     num: document.getElementById('admin-num').value ? Number(document.getElementById('admin-num').value) : '',
-    status: status === 'reserved' ? 'שמור' : 'קבור',
-    name: status === 'occupied' ? name : '',
+    status: statusHebrew(status),
+    firstName: status === 'occupied' ? firstName : '',
+    lastName: status === 'occupied' ? lastName : '',
+    fatherName: status === 'occupied' ? document.getElementById('admin-fathername').value.trim() : '',
+    reservedFor: status === 'reserved' ? document.getElementById('admin-reservedfor').value.trim() : '',
     death: document.getElementById('admin-death').value || '',
     description: document.getElementById('admin-description').value.trim(),
     linkUrl: document.getElementById('admin-link-url').value.trim(),
@@ -2514,15 +2648,41 @@ function buildSheet({name, gender, nusach, notVisited, fatherName}){
   const kaddishText = KADDISH[nusach] || KADDISH.ashkenaz;
   secE.innerHTML = `
     <div class="sec-head"><div class="sec-badge">ה</div><h2>אֵל מָלֵא רַחֲמִים וְקַדִּישׁ יָתוֹם</h2></div>
-    <div class="sec-note">נוסח: ${NUSACH_LABEL[nusach] || 'אשכנז'}</div>
     <div class="static-text he-text">${elMale}</div>
+    <div class="field" style="margin-top:22px;">
+      <label>נוסח הקדיש</label>
+      <div class="chip-group" id="sheetNusachGroup">
+        <label class="chip">
+          <input type="radio" name="sheetNusach" value="ashkenaz" ${nusach==='ashkenaz' ? 'checked' : ''} onchange="updateKaddishNusach(this.value)">
+          <span>אשכנז</span>
+        </label>
+        <label class="chip">
+          <input type="radio" name="sheetNusach" value="sefard" ${nusach==='sefard' ? 'checked' : ''} onchange="updateKaddishNusach(this.value)">
+          <span>ספרד</span>
+        </label>
+        <label class="chip">
+          <input type="radio" name="sheetNusach" value="edot" ${nusach==='edot' ? 'checked' : ''} onchange="updateKaddishNusach(this.value)">
+          <span>עדות המזרח</span>
+        </label>
+      </div>
+      <div class="sec-note" id="kaddishNusachNote">נוסח: ${NUSACH_LABEL[nusach] || 'אשכנז'}</div>
+    </div>
     <h3 style="margin-top:22px;margin-bottom:10px;font-size:calc(1.05em * var(--mp-font-scale));color:var(--mp-gold);">קַדִּישׁ יָתוֹם</h3>
-    <div class="static-text he-text" style="white-space:pre-line">${escapeHtml(kaddishText)}</div>
+    <div class="static-text he-text" id="kaddishTextBlock" style="white-space:pre-line">${escapeHtml(kaddishText)}</div>
   `;
   sheet.appendChild(secE);
 
   document.getElementById('tbName').textContent = `דף התפילה — ${name}`;
 }
+
+function updateKaddishNusach(newNusach){
+  const kaddishText = KADDISH[newNusach] || KADDISH.ashkenaz;
+  const noteEl = document.getElementById('kaddishNusachNote');
+  if (noteEl) noteEl.textContent = `נוסח: ${NUSACH_LABEL[newNusach] || 'אשכנז'}`;
+  const textEl = document.getElementById('kaddishTextBlock');
+  if (textEl) textEl.textContent = kaddishText;
+}
+window.updateKaddishNusach = updateKaddishNusach;
 
 /* ======================================================================
    6. FORM / TOOLBAR / SHARE / PRINT / FONT SIZE WIRING
@@ -2547,20 +2707,15 @@ function getFormValues(){
   const name = document.getElementById('nameInput').value.trim();
   const fatherName = document.getElementById('fatherInput').value.trim();
   const gender = document.querySelector('input[name="gender"]:checked').value;
-  const nusach = document.querySelector('input[name="nusach"]:checked').value;
   const notVisited = document.getElementById('notVisited').checked;
-  return {name, fatherName, gender, nusach, notVisited};
+  return {name, fatherName, gender, notVisited};
 }
 
-function setFormValues({name, fatherName, gender, nusach, notVisited}){
+function setFormValues({name, fatherName, gender, notVisited}){
   if (name) document.getElementById('nameInput').value = name;
   if (fatherName) document.getElementById('fatherInput').value = fatherName;
   if (gender) {
     const r = document.querySelector(`input[name="gender"][value="${gender}"]`);
-    if (r) r.checked = true;
-  }
-  if (nusach) {
-    const r = document.querySelector(`input[name="nusach"][value="${nusach}"]`);
     if (r) r.checked = true;
   }
   document.getElementById('notVisited').checked = !!notVisited;
@@ -2568,7 +2723,7 @@ function setFormValues({name, fatherName, gender, nusach, notVisited}){
 
 function generate(values){
   if (!values.name) return;
-  buildSheet(values);
+  buildSheet({...values, nusach: values.nusach || 'ashkenaz'});
   els.formSection.classList.add('hidden');
   els.toolbar.classList.remove('hidden');
   window.scrollTo({top:0, behavior:'smooth'});
@@ -2620,19 +2775,19 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
 });
 
 /* --- external hook: called from the cemetery app when opening a grave's prayer sheet --- */
-window.mpGenerateFor = function(name, gender){
-  const values = {name: name || '', gender: gender || 'm', nusach: 'ashkenaz', notVisited: false};
+window.mpGenerateFor = function(name, gender, fatherName){
+  const values = {name: name || '', fatherName: fatherName || '', gender: gender || 'm', notVisited: false};
   setFormValues(values);
   generate(values);
 };
 
-/* --- external hook: pre-fill the form with a best-effort first name, but let the
-   person review/edit it before generating (first name detection isn't 100% reliable) --- */
-window.mpPrefill = function(name, gender){
+/* --- external hook: pre-fill the form with the grave's recorded first name and
+   father's name, but let the person review/edit before generating --- */
+window.mpPrefill = function(name, gender, fatherName){
   els.sheet.innerHTML = '';
   els.formSection.classList.remove('hidden');
   els.toolbar.classList.add('hidden');
-  setFormValues({name: name || '', gender: gender || 'm', nusach: 'ashkenaz', notVisited: false});
+  setFormValues({name: name || '', fatherName: fatherName || '', gender: gender || 'm', notVisited: false});
   document.getElementById('nameInput').focus();
   document.getElementById('nameInput').select();
 };
