@@ -1582,7 +1582,7 @@ function performSearch(){
       <div class="result-card" onclick="openDetail(${g.id})">
         <div>
           <div class="result-name">${graveLabel(g)}</div>
-          <div class="result-dates">${g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
+          <div class="result-dates">${g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'תאריך הפטירה: ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
         </div>
         <div class="result-loc">חלקה ${g.block}</div>
       </div>`).join('');
@@ -1600,7 +1600,7 @@ function openDetail(id){
   if(g.photo){ photoEl.src = g.photo; photoEl.style.display='block'; }
   else { photoEl.style.display='none'; photoEl.removeAttribute('src'); }
   document.getElementById('d-name').textContent = graveLabel(g);
-  document.getElementById('d-years').textContent = g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'נפטר/ה ' + formatDate(g.death) : 'תאריך פטירה לא רשום');
+  document.getElementById('d-years').textContent = g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'תאריך הפטירה: ' + formatDate(g.death) : 'תאריך פטירה לא רשום');
   document.getElementById('d-block').textContent = g.block;
   document.getElementById('d-plot').textContent = g.col+1;
   document.getElementById('d-row').textContent = g.rowi+1;
