@@ -11,7 +11,6 @@
 <meta property="og:description" content="חיפוש קבר לפי שם וצפייה במיקום המדויק בבית העלמין">
 <meta property="og:image" content="https://aryeminkov-maker.github.io/Cemetery/og-image.jpg">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://aryeminkov-maker.github.io/Cemetery/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="איתור קבר בבית העלמין בבית אל">
 <meta name="twitter:image" content="https://aryeminkov-maker.github.io/Cemetery/og-image.jpg">
@@ -66,6 +65,14 @@ body{
 }
 .nav-btn:hover{border-color:var(--cypress);color:var(--limestone);}
 .nav-btn.active{background:var(--cypress-dim);color:var(--limestone);border-color:var(--cypress-dim);}
+.nav-icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:50%;
+  background:transparent;border:1px solid var(--stone-line);
+  color:var(--muted);cursor:pointer;transition:.2s;text-decoration:none;
+}
+.nav-icon-btn:hover{border-color:var(--cypress);color:var(--limestone);}
+.nav-icon-btn svg{display:block;}
 
 /* ---------- cypress watermark ---------- */
 .cypress-row{
@@ -211,7 +218,9 @@ body{
   background:var(--stone);border:1px solid var(--stone-line);
   border-radius:var(--radius);padding:26px;
 }
-.detail-name{font-family:'Frank Ruhl Libre',serif;font-size:26px;margin:0 0 4px;}
+.detail-name-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:0 0 4px;}
+.detail-name{font-family:'Frank Ruhl Libre',serif;font-size:26px;margin:0;}
+.detail-icon-actions{display:flex;gap:8px;flex-shrink:0;margin-top:4px;}
 .detail-photo{
   width:auto;max-width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:10px;
   margin:0 auto 16px;border:1px solid var(--stone-line);display:block;background:var(--ink-2);
@@ -501,6 +510,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <div class="nav-links">
       <button class="nav-btn" id="nav-home" onclick="goHome()">חיפוש</button>
       <button class="nav-btn" id="nav-map" onclick="goMap()">מפה</button>
+      <a class="nav-icon-btn" href="#" onclick="openWaze(); return false;" aria-label="ניווט בוויז לבית העלמין" title="ניווט בוויז לבית העלמין">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.5-7-11.5A7 7 0 0 1 19 9.5C19 14.5 12 21 12 21z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3" stroke="currentColor" stroke-width="1.8"/></svg>
+      </a>
     </div>
   </div>
 
@@ -523,10 +535,6 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 4L3 6.5V20l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4z" stroke="#EAE5D6" stroke-width="1.6" stroke-linejoin="round"/></svg>
           צפייה במפת בית העלמין
         </button>
-        <a class="btn-ghost" href="https://www.waze.com/he/live-map/directions/%D7%91%D7%99%D7%AA-%D7%A2%D7%9C%D7%9E%D7%99%D7%9F-%D7%91%D7%99%D7%AA-%D7%90%D7%9C?to=place.w.23068991.230886522.22345" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.5-7-11.5A7 7 0 0 1 19 9.5C19 14.5 12 21 12 21z" stroke="#EAE5D6" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.3" stroke="#EAE5D6" stroke-width="1.6"/></svg>
-          ניווט בוויז לבית העלמין
-        </a>
       </div>
     </div>
     <div class="prayer-direct-link">
@@ -557,7 +565,17 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <div class="detail-grid">
       <div class="detail-card">
         <img id="d-photo" class="detail-photo" style="display:none;" alt="תמונת המצבה" onerror="this.style.display='none';">
-        <div class="detail-name" id="d-name"></div>
+        <div class="detail-name-row">
+          <div class="detail-name" id="d-name"></div>
+          <div class="detail-icon-actions">
+            <button class="nav-icon-btn" onclick="shareGraveLink()" aria-label="שיתוף קישור לדף זה" title="שיתוף קישור לדף זה">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.3" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="12" r="2.3" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="19" r="2.3" stroke="currentColor" stroke-width="1.5"/><path d="M8 10.8l8-4.2M8 13.2l8 4.2" stroke="currentColor" stroke-width="1.4"/></svg>
+            </button>
+            <button class="nav-icon-btn" onclick="reportGraveIssue()" aria-label="דיווח על טעות בפרטים / עדכון פרטים" title="דיווח על טעות בפרטים / עדכון פרטים">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
         <div class="detail-years" id="d-years"></div>
         <div class="detail-row"><span class="label">חלקה</span><span id="d-block"></span></div>
         <div class="detail-row"><span class="label">טור</span><span id="d-plot"></span></div>
@@ -571,20 +589,14 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <div class="detail-desc-label">אודות</div>
           <div class="detail-desc-text" id="d-desc"></div>
         </div>
-        <button class="btn-ghost psalms-link" onclick="openPrayerSheet(currentHighlight)" style="margin-top:18px;width:100%;justify-content:center;">
+        <a class="btn-ghost" id="d-link-btn" href="#" target="_blank" rel="noopener" style="display:none;margin-top:10px;width:100%;justify-content:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 14a4 4 0 0 0 5.66 0l2.83-2.83a4 4 0 0 0-5.66-5.66l-1 1" stroke="#3A4038" stroke-width="1.6" stroke-linecap="round"/><path d="M14 10a4 4 0 0 0-5.66 0L5.51 12.83a4 4 0 0 0 5.66 5.66l1-1" stroke="#3A4038" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span id="d-link-btn-text"></span>
+        </a>
+        <button class="btn-ghost psalms-link" onclick="openPrayerSheet(currentHighlight)" style="margin-top:10px;width:100%;justify-content:center;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4h11l5 5v11H4V4z" stroke="#3A4038" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 10h8M8 14h8M8 18h5" stroke="#3A4038" stroke-width="1.4" stroke-linecap="round"/></svg>
           דף תפילה מלא לעילוי נשמה
         </button>
-        <div class="admin-actions" style="margin-top:10px;">
-          <button class="btn-ghost" onclick="shareGraveLink()" style="flex:1;justify-content:center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="2.3" stroke="#3A4038" stroke-width="1.5"/><circle cx="6" cy="12" r="2.3" stroke="#3A4038" stroke-width="1.5"/><circle cx="18" cy="19" r="2.3" stroke="#3A4038" stroke-width="1.5"/><path d="M8 10.8l8-4.2M8 13.2l8 4.2" stroke="#3A4038" stroke-width="1.4"/></svg>
-            שיתוף קישור לדף זה
-          </button>
-          <button class="btn-ghost" onclick="reportGraveIssue()" style="flex:1;justify-content:center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3A4038" stroke-width="1.5"/><path d="M12 8v5" stroke="#3A4038" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="#3A4038"/></svg>
-            דיווח על טעות בפרטים
-          </button>
-        </div>
       </div>
       <div class="map-card">
         <div class="map-card-title">מיקום מדויק על המפה</div>
@@ -756,6 +768,20 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         <label>תיאור / קורות חיים (אופציונלי — יופיע בעמוד הקבר אם מולא)</label>
         <textarea id="admin-description" rows="4" placeholder="טקסט חופשי..."></textarea>
       </div>
+      <div class="admin-field">
+        <label>כפתור קישור (אופציונלי — למשל קישור לדף הנצחה באתר יזכור)</label>
+        <div class="admin-field-row">
+          <div class="admin-field">
+            <label style="font-size:11px;">כתובת הקישור (URL)</label>
+            <input type="text" id="admin-link-url" placeholder="https://www.izkor.gov.il/...">
+          </div>
+          <div class="admin-field">
+            <label style="font-size:11px;">טקסט הכפתור</label>
+            <input type="text" id="admin-link-text" placeholder="לדוגמה: דף הנצחה ביזכור">
+          </div>
+        </div>
+        <div class="admin-hint" style="font-size:11.5px;color:var(--muted);margin-top:6px;">אם הכתובת ריקה, הכפתור לא יוצג בעמוד הקבר. אם לא תוזן תווית, יוצג הטקסט "מעבר לקישור".</div>
+      </div>
       <div class="admin-field" id="admin-photo-field" style="display:none;">
         <label>תמונת מצבה (רק מנהל יכול להעלות/להסיר — נשמרת מיד בשמירה)</label>
         <img id="admin-photo-preview" style="display:none;width:auto;max-width:100%;height:auto;max-height:280px;object-fit:contain;border-radius:8px;margin-bottom:10px;border:1px solid var(--stone-line);background:var(--ink-2);" alt="תצוגה מקדימה">
@@ -895,7 +921,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 const API_URL = 'https://script.google.com/macros/s/AKfycbyKh1XdxQTpwJqHkH055KpLTAMpOJgtXK9d6sSJ1wH2jvHUmhiM_qJAGChKW44WFkUf/exec';
 const GOOGLE_CLIENT_ID = '656595279986-48a5mirlpia1rb1r032h7vgbn6optek7.apps.googleusercontent.com';
 const WAZE_URL = 'https://www.waze.com/he/live-map/directions/%D7%91%D7%99%D7%AA-%D7%A2%D7%9C%D7%9E%D7%99%D7%9F-%D7%91%D7%99%D7%AA-%D7%90%D7%9C?to=place.w.23068991.230886522.22345';
-const CONTACT_EMAIL = 'arye.minkov@gmail.com'; // כתובת ליצירת קשר / דיווח על טעויות — ניתן לעדכן
+const CONTACT_EMAIL = 'm.dat@bet-el.muni.il'; // כתובת ליצירת קשר / דיווח על טעויות — ניתן לעדכן
 
 /* ============ FALLBACK DATA (used if the live sheet can't be reached) ============ */
 const FALLBACK_GRAVES = [
@@ -1115,6 +1141,8 @@ async function loadGraves(){
         name: g.name || null,
         death: g.death || null,
         description: g.description || null,
+        linkUrl: g.linkUrl || null,
+        linkText: g.linkText || null,
         depth: g.depth ? Number(g.depth) : 1,
         photo: g.photo || null
       }));
@@ -1327,6 +1355,9 @@ function showView(id){
   document.getElementById('nav-map').classList.toggle('active', id==='view-map');
   window.scrollTo({top:0,behavior:'smooth'});
 }
+function openWaze(){
+  window.open(WAZE_URL, '_blank', 'noopener');
+}
 function goHome(){
   showView('view-home');
   document.getElementById('search-input').value='';
@@ -1464,8 +1495,9 @@ function performSearch(){
 
 /* ============ DETAIL ============ */
 function openDetail(id){
-  const g = graves.find(x=>x.id===id);
+  const g = graves.find(x=>String(x.id)===String(id));
   if(!g) return;
+  id = g.id;
   currentHighlight = id;
   const photoEl = document.getElementById('d-photo');
   if(g.photo){ photoEl.src = g.photo; photoEl.style.display='block'; }
@@ -1494,6 +1526,15 @@ function openDetail(id){
     document.getElementById('d-desc').textContent = g.description;
   } else {
     descBlock.style.display='none';
+  }
+
+  const linkBtn = document.getElementById('d-link-btn');
+  if(g.linkUrl && g.linkUrl.trim()){
+    linkBtn.href = g.linkUrl.trim();
+    document.getElementById('d-link-btn-text').textContent = (g.linkText && g.linkText.trim()) ? g.linkText.trim() : 'מעבר לקישור';
+    linkBtn.style.display = 'flex';
+  } else {
+    linkBtn.style.display = 'none';
   }
 
   const prayerBtn = document.querySelector('.psalms-link');
@@ -1929,7 +1970,8 @@ function adminNewRecord(){
   document.getElementById('admin-death').value = '';
   document.getElementById('admin-death-trigger').textContent = '📅 בחרו תאריך עברי';
   document.getElementById('admin-description').value = '';
-  document.getElementById('admin-delete-btn').style.display = 'none';
+  document.getElementById('admin-link-url').value = '';
+  document.getElementById('admin-link-text').value = '';
   document.getElementById('admin-photo-field').style.display = 'none'; // אין עדיין מזהה קבר לצרף אליו תמונה
   document.getElementById('admin-view-card-link').style.display = 'none'; // אין עדיין כרטיס לצפות בו
   document.getElementById('admin-form-error').style.display = 'none';
@@ -1951,11 +1993,13 @@ function adminEditRecord(id){
   document.getElementById('admin-death').value = g.death || '';
   document.getElementById('admin-death-trigger').textContent = g.death ? fmtHD(g.death) : '📅 בחרו תאריך עברי';
   document.getElementById('admin-description').value = g.description || '';
+  document.getElementById('admin-link-url').value = g.linkUrl || '';
+  document.getElementById('admin-link-text').value = g.linkText || '';
   document.getElementById('admin-delete-btn').style.display = 'inline-flex';
   document.getElementById('admin-view-card-link').style.display = 'block';
 
   const photoField = document.getElementById('admin-photo-field');
-  if(currentUserRole === 'admin'){
+  if(currentUserRole === 'admin' || currentUserRole === 'editor'){
     photoField.style.display = 'block';
     document.getElementById('admin-photo-input').value = '';
     document.getElementById('admin-photo-status').textContent = '';
@@ -2012,6 +2056,8 @@ async function adminSaveRecord(){
     name: status === 'occupied' ? name : '',
     death: document.getElementById('admin-death').value || '',
     description: document.getElementById('admin-description').value.trim(),
+    linkUrl: document.getElementById('admin-link-url').value.trim(),
+    linkText: document.getElementById('admin-link-text').value.trim(),
     depth: Number(document.getElementById('admin-depth-group').querySelector('input:checked').value)
   };
   if(adminEditingId){
@@ -2153,11 +2199,9 @@ loadGraves().then(()=>{
   try{
     const params = new URLSearchParams(window.location.search);
     const graveParam = params.get('grave');
-    if(graveParam !== null){
-      const gid = parseInt(graveParam, 10);
-      if(!isNaN(gid) && graves.some(x=>x.id===gid)){
-        openDetail(gid);
-      }
+    if(graveParam !== null && graveParam !== ''){
+      const gid = /^\d+$/.test(graveParam) ? parseInt(graveParam, 10) : graveParam;
+      openDetail(gid);
     }
   }catch(e){}
 });
