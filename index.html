@@ -2355,13 +2355,40 @@ function calibRenderList(){
     const armed = g.id === calibArmedId;
     return `<div class="admin-list-item" onclick="calibArmGrave(${g.id})" tabindex="0" role="button"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
-              style="cursor:pointer;${armed ? 'border-color:var(--candle);background:var(--ink-2);' : ''}">
+              style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;${armed ? 'border-color:var(--candle);background:var(--ink-2);' : ''}">
       <div>
         <div class="admin-list-name">${placed ? '✅' : '⬜'} שורה ${g.rowi+1} · טור ${g.col+1} — ${label}</div>
         <div class="admin-list-loc">קבר #${g.num ?? g.id}</div>
       </div>
+      ${placed ? `<button type="button" class="a11y-ctrl-btn" style="flex-shrink:0;font-size:12px;padding:5px 9px;"
+                    onclick="event.stopPropagation();calibResetGrave(${g.id});"
+                    title="איפוס כיול לקבר זה">✕ איפוס</button>` : ''}
     </div>`;
   }).join('');
+}
+
+async function calibResetGrave(id){
+  if(!confirm('לאפס את הכיול הקיים של הקבר הזה? המיקום על התמונה יימחק.')) return;
+  const g = graves.find(gv => gv.id === id);
+  if(!g) return;
+  const prevX = g.photoX, prevY = g.photoY;
+  g.photoX = null; g.photoY = null;
+  calibRenderPins();
+  calibRenderList();
+  if(calibArmedId === id) calibUpdateArmedNote();
+
+  const note = document.getElementById('calib-armed-note');
+  try{
+    await apiWrite('update', { grave: { id, photoX: null, photoY: null } });
+  } catch(err){
+    g.photoX = prevX; g.photoY = prevY;
+    calibRenderPins();
+    calibRenderList();
+    if(calibArmedId === id) calibUpdateArmedNote();
+    note.innerHTML = '❌ איפוס נכשל: ' + err.message;
+    return;
+  }
+  note.innerHTML = '✅ הכיול אופס. אפשר לבחור את הקבר מחדש ולכייל מיקום חדש.';
 }
 
 function calibArmGrave(id){
@@ -2409,15 +2436,28 @@ async function calibPhotoClick(event){
   calibRenderPins();
   calibRenderList();
 
+  const note = document.getElementById('calib-armed-note');
+  const savedNoteHTML = note.innerHTML;
+  note.innerHTML = '⏳ שומר מיקום...';
+
   try{
-    await apiWrite('update', { grave: { id: calibArmedId, photoX: xr, photoY: yr } });
+    const res = await apiWrite('update', { grave: { id: calibArmedId, photoX: xr, photoY: yr } });
+    // אימות אמיתי שהשמירה תפסה בשרת, ולא רק "success:true" גנרי משרת ישן
+    // שעדיין לא מכיר את השדות photoX/photoY (ולכן בפועל לא שומר כלום)
+    const check = await apiWrite('graves', {});
+    const savedGrave = Array.isArray(check.graves) ? check.graves.find(x => Number(x.id) === Number(calibArmedId)) : null;
+    const reallySaved = savedGrave && savedGrave.photoX !== '' && savedGrave.photoX !== null && savedGrave.photoX !== undefined;
+    if(!reallySaved){
+      throw new Error('השרת אישר את הבקשה אך המיקום לא נשמר בפועל בגיליון. יש לוודא שהוגדרו עמודות photoX/photoY בגיליון Graves, ושגרסת ה-Apps Script המעודכנת פרוסה (Deploy > Manage deployments > New version).');
+    }
   } catch(err){
     g.photoX = prevX; g.photoY = prevY;
     calibRenderPins();
     calibRenderList();
-    alert('שמירת המיקום נכשלה: ' + err.message);
+    note.innerHTML = '❌ שמירה נכשלה: ' + err.message;
     return;
   }
+  note.innerHTML = '✅ נשמר בהצלחה!';
   // מעבר אוטומטי לקבר הבא ברשימה שעדיין לא כויל, לזרימת עבודה מהירה
   const remaining = calibGraves().filter(gv => gv.photoX == null || gv.photoY == null);
   calibArmedId = remaining.length ? remaining[0].id : null;
