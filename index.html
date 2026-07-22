@@ -989,7 +989,12 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <button type="button" class="a11y-ctrl-btn" onclick="calibZoomBy(-0.5)" aria-label="הקטנה">🔍− הקטנה</button>
           <button type="button" class="a11y-ctrl-btn" onclick="calibZoomReset()" aria-label="איפוס זום">⟲ איפוס זום</button>
           <span class="section-sub" style="margin:0;" id="calib-zoom-label">100%</span>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);margin-right:12px;cursor:pointer;">
+            <input type="checkbox" id="calib-row-align-toggle" checked>
+            יישור אוטומטי לפי שורה
+          </label>
         </div>
+        <div class="section-sub" id="calib-row-align-note" style="margin-top:-4px;margin-bottom:6px;"></div>
         <div id="calib-photo-scroll" dir="ltr" style="width:100%;overflow:auto;max-height:65vh;border:1px solid var(--stone-line);border-radius:10px;">
           <div class="photo-map-wrap" id="calib-photo-wrap" style="overflow:visible;cursor:crosshair;transition:width .15s;">
             <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול">
@@ -2575,9 +2580,23 @@ async function calibPhotoClick(event){
   const rect = img.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 100;
   const y = ((event.clientY - rect.top) / rect.height) * 100;
-  const xr = Math.round(x*100)/100, yr = Math.round(y*100)/100;
+  const xr = Math.round(x*100)/100;
 
   const g = graves.find(gv => gv.id === calibArmedId);
+  // יישור אוטומטי לפי שורה: מיקום ה-X נשאר בדיוק איפה שלוחצים (דיוק ידני מלא),
+  // אבל ה-Y מיושר לגובה הממוצע של קברים אחרים שכבר כוילו באותה שורה (אותה חלקה+שורה
+  // פיזית), כדי ששורה שלמה תצא ישרה ואחידה במקום מפוזרת לפי אי-דיוקים קטנים של לחיצה.
+  let yr = Math.round(y*100)/100;
+  let rowAligned = false;
+  const alignToggle = document.getElementById('calib-row-align-toggle');
+  if(alignToggle && alignToggle.checked){
+    const rowMates = graves.filter(gv => gv.block===g.block && gv.rowi===g.rowi && gv.id!==g.id && gv.photoY != null);
+    if(rowMates.length){
+      yr = Math.round((rowMates.reduce((s,gv)=>s+gv.photoY,0)/rowMates.length)*100)/100;
+      rowAligned = true;
+    }
+  }
+
   // קבר כפול - שותף באותה משבצת בדיוק (אותה חלקה/טור/שורה) מקבל אוטומטית אותו מיקום,
   // כי מדובר פיזית באותה נקודה על התמונה - אין טעם לכייל אותו בנפרד.
   const partner = graves.find(x2 => x2.id !== g.id && x2.block === g.block && x2.col === g.col && x2.rowi === g.rowi);
@@ -2589,7 +2608,10 @@ async function calibPhotoClick(event){
   calibRenderList();
 
   const note = document.getElementById('calib-armed-note');
-  note.innerHTML = partner ? '⏳ שומר מיקום (כולל השותף בקבר הכפול)...' : '⏳ שומר מיקום...';
+  const parts = [];
+  if(rowAligned) parts.push('מיושר לגובה השורה');
+  if(partner) parts.push('כולל השותף בקבר הכפול');
+  note.innerHTML = '⏳ שומר מיקום' + (parts.length ? ' (' + parts.join(', ') + ')' : '') + '...';
 
   async function saveOne(id, px, py){
     const res = await apiWrite('update', { grave: { id, photoX: px, photoY: py } });
@@ -2620,7 +2642,7 @@ async function calibPhotoClick(event){
     calibSaving = false;
     return;
   }
-  note.innerHTML = partner ? '✅ נשמר בהצלחה! (עודכן גם השותף בקבר הכפול)' : '✅ נשמר בהצלחה!';
+  note.innerHTML = '✅ נשמר בהצלחה!' + (parts.length ? ' (' + parts.join(', ') + ')' : '');
   // מעבר אוטומטי לקבר הבא ברשימה שעדיין לא כויל, לזרימת עבודה מהירה
   const remaining = calibGraves().filter(gv => gv.photoX == null || gv.photoY == null);
   calibArmedId = remaining.length ? remaining[0].id : null;
