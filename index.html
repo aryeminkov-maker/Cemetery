@@ -2498,11 +2498,17 @@ function calibRenderList(){
 }
 
 async function calibResetGrave(id){
-  if(!confirm('לאפס את הכיול הקיים של הקבר הזה? המיקום על התמונה יימחק.')) return;
   const g = graves.find(gv => gv.id === id);
   if(!g) return;
+  const partner = graves.find(x2 => x2.id !== g.id && x2.block === g.block && x2.col === g.col && x2.rowi === g.rowi && x2.photoX != null);
+  const confirmMsg = partner
+    ? 'לאפס את הכיול הקיים? זה יאפס גם את השותף בקבר הכפול (שניהם באותה נקודה בתמונה).'
+    : 'לאפס את הכיול הקיים של הקבר הזה? המיקום על התמונה יימחק.';
+  if(!confirm(confirmMsg)) return;
   const prevX = g.photoX, prevY = g.photoY;
+  const partnerPrevX = partner ? partner.photoX : undefined, partnerPrevY = partner ? partner.photoY : undefined;
   g.photoX = null; g.photoY = null;
+  if(partner){ partner.photoX = null; partner.photoY = null; }
   calibRenderPins();
   calibRenderList();
   if(calibArmedId === id) calibUpdateArmedNote();
@@ -2510,15 +2516,17 @@ async function calibResetGrave(id){
   const note = document.getElementById('calib-armed-note');
   try{
     await apiWrite('update', { grave: { id, photoX: null, photoY: null } });
+    if(partner) await apiWrite('update', { grave: { id: partner.id, photoX: null, photoY: null } });
   } catch(err){
     g.photoX = prevX; g.photoY = prevY;
+    if(partner){ partner.photoX = partnerPrevX; partner.photoY = partnerPrevY; }
     calibRenderPins();
     calibRenderList();
     if(calibArmedId === id) calibUpdateArmedNote();
     note.innerHTML = '❌ איפוס נכשל: ' + err.message;
     return;
   }
-  note.innerHTML = '✅ הכיול אופס. אפשר לבחור את הקבר מחדש ולכייל מיקום חדש.';
+  note.innerHTML = partner ? '✅ הכיול אופס (כולל השותף בקבר הכפול).' : '✅ הכיול אופס. אפשר לבחור את הקבר מחדש ולכייל מיקום חדש.';
 }
 
 function calibArmGrave(id){
@@ -2570,22 +2578,24 @@ async function calibPhotoClick(event){
   const xr = Math.round(x*100)/100, yr = Math.round(y*100)/100;
 
   const g = graves.find(gv => gv.id === calibArmedId);
+  // קבר כפול - שותף באותה משבצת בדיוק (אותה חלקה/טור/שורה) מקבל אוטומטית אותו מיקום,
+  // כי מדובר פיזית באותה נקודה על התמונה - אין טעם לכייל אותו בנפרד.
+  const partner = graves.find(x2 => x2.id !== g.id && x2.block === g.block && x2.col === g.col && x2.rowi === g.rowi);
   const prevX = g.photoX, prevY = g.photoY;
+  const partnerPrevX = partner ? partner.photoX : undefined, partnerPrevY = partner ? partner.photoY : undefined;
   g.photoX = xr; g.photoY = yr;
+  if(partner){ partner.photoX = xr; partner.photoY = yr; }
   calibRenderPins();
   calibRenderList();
 
   const note = document.getElementById('calib-armed-note');
-  const savedNoteHTML = note.innerHTML;
-  note.innerHTML = '⏳ שומר מיקום...';
+  note.innerHTML = partner ? '⏳ שומר מיקום (כולל השותף בקבר הכפול)...' : '⏳ שומר מיקום...';
 
-  try{
-    const res = await apiWrite('update', { grave: { id: calibArmedId, photoX: xr, photoY: yr } });
-    // אימות אמיתי שהשמירה תפסה בשרת, ולא רק "success:true" גנרי. בודקים פעמיים
-    // עם השהיה קצרה ביניהן, כדי לא לדווח כשל שגוי בגלל עיכוב זמני בקריאה מיד אחרי כתיבה.
+  async function saveOne(id, px, py){
+    const res = await apiWrite('update', { grave: { id, photoX: px, photoY: py } });
     async function checkSaved(){
       const check = await apiWrite('graves', {});
-      const savedGrave = Array.isArray(check.graves) ? check.graves.find(x => Number(x.id) === Number(calibArmedId)) : null;
+      const savedGrave = Array.isArray(check.graves) ? check.graves.find(x2 => Number(x2.id) === Number(id)) : null;
       return savedGrave && savedGrave.photoX !== '' && savedGrave.photoX !== null && savedGrave.photoX !== undefined;
     }
     let reallySaved = await checkSaved();
@@ -2594,17 +2604,23 @@ async function calibPhotoClick(event){
       reallySaved = await checkSaved();
     }
     if(!reallySaved){
-      throw new Error('השרת אישר את הבקשה אך המיקום לא נשמר בפועל בגיליון, גם אחרי בדיקה חוזרת. אם זה קורה רק לקבר הספציפי הזה (וקברים אחרים כן נשמרים בהצלחה) - בדקו בגיליון שיש בדיוק שורה אחת עם המזהה id=' + calibArmedId + ' (לא כפולה ולא חסרה). אם זה קורה לכל הקברים - יש לוודא שהוגדרו עמודות photoX/photoY בגיליון Graves, ושגרסת ה-Apps Script המעודכנת פרוסה (Deploy > Manage deployments > New version).');
+      throw new Error('השרת אישר את הבקשה אך המיקום לא נשמר בפועל בגיליון, גם אחרי בדיקה חוזרת (מזהה id=' + id + '). אם זה קורה רק לקבר הספציפי הזה (וקברים אחרים כן נשמרים בהצלחה) - בדקו בגיליון שיש בדיוק שורה אחת עם המזהה הזה (לא כפולה ולא חסרה). אם זה קורה לכל הקברים - יש לוודא שהוגדרו עמודות photoX/photoY בגיליון Graves, ושגרסת ה-Apps Script המעודכנת פרוסה (Deploy > Manage deployments > New version).');
     }
+  }
+
+  try{
+    await saveOne(calibArmedId, xr, yr);
+    if(partner) await saveOne(partner.id, xr, yr);
   } catch(err){
     g.photoX = prevX; g.photoY = prevY;
+    if(partner){ partner.photoX = partnerPrevX; partner.photoY = partnerPrevY; }
     calibRenderPins();
     calibRenderList();
     note.innerHTML = '❌ שמירה נכשלה: ' + err.message;
     calibSaving = false;
     return;
   }
-  note.innerHTML = '✅ נשמר בהצלחה!';
+  note.innerHTML = partner ? '✅ נשמר בהצלחה! (עודכן גם השותף בקבר הכפול)' : '✅ נשמר בהצלחה!';
   // מעבר אוטומטי לקבר הבא ברשימה שעדיין לא כויל, לזרימת עבודה מהירה
   const remaining = calibGraves().filter(gv => gv.photoX == null || gv.photoY == null);
   calibArmedId = remaining.length ? remaining[0].id : null;
