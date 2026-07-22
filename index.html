@@ -925,10 +925,10 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         </div>
       </div>
       <div class="admin-field">
-        <label>עומק (לקברים כפולים — שני אנשים באותה משבצת)</label>
+        <label>עומק (לקברים כפולים — שני אנשים באותה משבצת. קבר ראשון = תחתון, קבר שני = עליון)</label>
         <div class="chip-group" id="admin-depth-group">
-          <label class="chip"><input type="radio" name="admin-depth" value="1" checked><span>ראשון</span></label>
-          <label class="chip"><input type="radio" name="admin-depth" value="2"><span>שני (מעל / מתחת)</span></label>
+          <label class="chip"><input type="radio" name="admin-depth" value="1" checked><span>ראשון (תחתון)</span></label>
+          <label class="chip"><input type="radio" name="admin-depth" value="2"><span>שני (עליון)</span></label>
         </div>
         <div class="admin-hint" style="font-size:11.5px;color:var(--muted);margin-top:6px;">כדי להוסיף אדם שני לאותה משבצת קיימת — בחר "הוספת קבר" והזן בדיוק אותה חלקה/טור/שורה, עם עומק "שני".</div>
       </div>
@@ -983,9 +983,18 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;align-items:flex-start;">
       <div style="flex:2;min-width:280px;">
-        <div class="photo-map-wrap" id="calib-photo-wrap" style="border:1px solid var(--stone-line);border-radius:10px;overflow:hidden;cursor:crosshair;">
-          <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <button type="button" class="a11y-ctrl-btn" onclick="calibZoomBy(0.5)" aria-label="הגדלה">🔍+ הגדלה</button>
+          <button type="button" class="a11y-ctrl-btn" onclick="calibZoomBy(-0.5)" aria-label="הקטנה">🔍− הקטנה</button>
+          <button type="button" class="a11y-ctrl-btn" onclick="calibZoomReset()" aria-label="איפוס זום">⟲ איפוס זום</button>
+          <span class="section-sub" style="margin:0;" id="calib-zoom-label">100%</span>
         </div>
+        <div id="calib-photo-scroll" dir="ltr" style="width:100%;overflow:auto;max-height:65vh;border:1px solid var(--stone-line);border-radius:10px;">
+          <div class="photo-map-wrap" id="calib-photo-wrap" style="overflow:visible;cursor:crosshair;transition:width .15s;">
+            <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול">
+          </div>
+        </div>
+        <div class="section-sub" style="margin-top:4px;">בהגדלה, אפשר לגלול/לגרור בתוך התמונה (עם הסקרולבר או עם מקש הגלגלת) כדי להגיע לכל אזור, ולדייק את מיקום הנקודה.</div>
         <div class="section-sub" id="calib-armed-note" style="margin-top:10px;"></div>
         <button type="button" class="btn-ghost" id="calib-view-grave-btn" onclick="if(calibArmedId) openDetail(calibArmedId);" style="margin-top:8px;display:none;">🔗 צפייה בדף הקבר הציבורי</button>
       </div>
@@ -2355,6 +2364,20 @@ function adminExportCSV(){
 /* ============ כיול מיקומים על תמונה ============ */
 let calibBlock = null;
 let calibArmedId = null;
+let calibZoom = 1;
+
+function calibZoomBy(delta){
+  calibZoom = Math.max(1, Math.min(5, Math.round((calibZoom + delta) * 10) / 10));
+  document.getElementById('calib-photo-wrap').style.width = (calibZoom * 100) + '%';
+  document.getElementById('calib-zoom-label').textContent = Math.round(calibZoom * 100) + '%';
+}
+function calibZoomReset(){
+  calibZoom = 1;
+  document.getElementById('calib-photo-wrap').style.width = '100%';
+  document.getElementById('calib-zoom-label').textContent = '100%';
+  document.getElementById('calib-photo-scroll').scrollLeft = 0;
+  document.getElementById('calib-photo-scroll').scrollTop = 0;
+}
 
 function calibExportBackup(){
   const calibrated = graves.filter(g => g.photoX != null && g.photoY != null);
@@ -2384,6 +2407,7 @@ function openPhotoCalib(){
 function calibSelectBlock(block){
   calibBlock = block;
   calibArmedId = null;
+  calibZoomReset();
   document.getElementById('calib-block-select').value = block;
   document.getElementById('calib-photo-img').src = BLOCK_PHOTOS[block];
   calibRenderPins();
@@ -2497,13 +2521,20 @@ async function calibPhotoClick(event){
 
   try{
     const res = await apiWrite('update', { grave: { id: calibArmedId, photoX: xr, photoY: yr } });
-    // אימות אמיתי שהשמירה תפסה בשרת, ולא רק "success:true" גנרי משרת ישן
-    // שעדיין לא מכיר את השדות photoX/photoY (ולכן בפועל לא שומר כלום)
-    const check = await apiWrite('graves', {});
-    const savedGrave = Array.isArray(check.graves) ? check.graves.find(x => Number(x.id) === Number(calibArmedId)) : null;
-    const reallySaved = savedGrave && savedGrave.photoX !== '' && savedGrave.photoX !== null && savedGrave.photoX !== undefined;
+    // אימות אמיתי שהשמירה תפסה בשרת, ולא רק "success:true" גנרי. בודקים פעמיים
+    // עם השהיה קצרה ביניהן, כדי לא לדווח כשל שגוי בגלל עיכוב זמני בקריאה מיד אחרי כתיבה.
+    async function checkSaved(){
+      const check = await apiWrite('graves', {});
+      const savedGrave = Array.isArray(check.graves) ? check.graves.find(x => Number(x.id) === Number(calibArmedId)) : null;
+      return savedGrave && savedGrave.photoX !== '' && savedGrave.photoX !== null && savedGrave.photoX !== undefined;
+    }
+    let reallySaved = await checkSaved();
     if(!reallySaved){
-      throw new Error('השרת אישר את הבקשה אך המיקום לא נשמר בפועל בגיליון. יש לוודא שהוגדרו עמודות photoX/photoY בגיליון Graves, ושגרסת ה-Apps Script המעודכנת פרוסה (Deploy > Manage deployments > New version).');
+      await new Promise(r => setTimeout(r, 1200));
+      reallySaved = await checkSaved();
+    }
+    if(!reallySaved){
+      throw new Error('השרת אישר את הבקשה אך המיקום לא נשמר בפועל בגיליון, גם אחרי בדיקה חוזרת. אם זה קורה רק לקבר הספציפי הזה (וקברים אחרים כן נשמרים בהצלחה) - בדקו בגיליון שיש בדיוק שורה אחת עם המזהה id=' + calibArmedId + ' (לא כפולה ולא חסרה). אם זה קורה לכל הקברים - יש לוודא שהוגדרו עמודות photoX/photoY בגיליון Graves, ושגרסת ה-Apps Script המעודכנת פרוסה (Deploy > Manage deployments > New version).');
     }
   } catch(err){
     g.photoX = prevX; g.photoY = prevY;
