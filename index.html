@@ -2501,8 +2501,11 @@ function calibRenderPins(){
   });
 }
 
+let calibSaving = false;
 async function calibPhotoClick(event){
   if(!calibArmedId){ alert('קודם בחרו קבר מהרשימה מימין.'); return; }
+  if(calibSaving){ return; } // מתעלמים מלחיצות נוספות בזמן שמירה קודמת - זה בדיוק מה שגרם למרוץ בין בקשות ולכשלים
+  calibSaving = true;
   const img = document.getElementById('calib-photo-img');
   const rect = img.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -2541,6 +2544,7 @@ async function calibPhotoClick(event){
     calibRenderPins();
     calibRenderList();
     note.innerHTML = '❌ שמירה נכשלה: ' + err.message;
+    calibSaving = false;
     return;
   }
   note.innerHTML = '✅ נשמר בהצלחה!';
@@ -2549,6 +2553,7 @@ async function calibPhotoClick(event){
   calibArmedId = remaining.length ? remaining[0].id : null;
   calibRenderList();
   calibUpdateArmedNote();
+  calibSaving = false;
 }
 document.addEventListener('DOMContentLoaded', () => {
   const wrap = document.getElementById('calib-photo-wrap');
