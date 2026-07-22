@@ -792,6 +792,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     </div>
     <div class="block-holder" id="block-holder" style="display:none;">
       <div class="block-picker" id="block-picker"></div>
+      <div id="block-submode-toggle" style="display:flex;gap:8px;margin-bottom:10px;"></div>
       <div class="block-svg-wrap" id="block-svg-wrap"></div>
     </div>
     <div class="map-popup" id="map-popup">
@@ -1802,11 +1803,68 @@ function initBlockPicker(){
   ).join('');
 }
 
+let currentBlockKey = null;
+let currentBlockSubMode = 'schematic';
+
 function setBlockView(key){
   currentBlockKey = key;
+  currentBlockSubMode = 'schematic';
   document.querySelectorAll('.block-picker-btn').forEach(b=>b.classList.toggle('active', b.dataset.block===key));
-  document.getElementById('block-svg-wrap').innerHTML = buildBlockSVG(key, currentHighlight);
+  renderBlockSubmodeToggle();
+  renderBlockContent();
 }
+
+function renderBlockSubmodeToggle(){
+  const wrap = document.getElementById('block-submode-toggle');
+  if(!BLOCK_PHOTOS[currentBlockKey]){
+    wrap.innerHTML = ''; // אין תצלום אוויר מכויל לחלקה הזו - מציגים רק את התרשים
+    return;
+  }
+  wrap.innerHTML = `
+    <button type="button" class="map-mode-tab ${currentBlockSubMode==='schematic'?'active':''}" onclick="setBlockSubMode('schematic')">תרשים</button>
+    <button type="button" class="map-mode-tab ${currentBlockSubMode==='aerial'?'active':''}" onclick="setBlockSubMode('aerial')">תצלום אוויר</button>
+  `;
+}
+
+function setBlockSubMode(mode){
+  currentBlockSubMode = mode;
+  renderBlockSubmodeToggle();
+  renderBlockContent();
+}
+
+function renderBlockContent(){
+  const wrap = document.getElementById('block-svg-wrap');
+  if(currentBlockSubMode === 'aerial' && BLOCK_PHOTOS[currentBlockKey]){
+    wrap.innerHTML = buildBlockPhotoView(currentBlockKey, currentHighlight);
+  } else {
+    wrap.innerHTML = buildBlockSVG(currentBlockKey, currentHighlight);
+  }
+}
+
+function buildBlockPhotoView(blockKey, highlightId){
+  const src = BLOCK_PHOTOS[blockKey];
+  const blockGraves = graves.filter(g => g.block === blockKey && g.photoX != null && g.photoY != null);
+  const pins = blockGraves.map(g => {
+    const isHi = g.id === highlightId;
+    const cls = isHi ? 'photo-map-pin-other' : 'photo-map-pin-other';
+    const style = isHi
+      ? `left:${g.photoX}%;top:${g.photoY}%;width:20px;height:20px;margin-left:-10px;margin-top:-10px;background:var(--candle);border-width:3px;`
+      : `left:${g.photoX}%;top:${g.photoY}%;`;
+    return `<div class="${cls}" style="${style}" title="${graveLabel(g)}" onclick="openDetail(${g.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${graveLabel(g)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`;
+  }).join('');
+  const uncalibratedCount = graves.filter(g => g.block === blockKey && (g.photoX == null || g.photoY == null)).length;
+  const note = uncalibratedCount > 0
+    ? `<div class="section-sub" style="margin-top:8px;">${uncalibratedCount} קברים בחלקה זו עדיין לא סומנו על התצלום.</div>`
+    : '';
+  return `
+    <div class="photo-map-wrap" style="border:1px solid var(--stone-line);border-radius:10px;overflow:hidden;">
+      <img src="${src}" alt="תמונת אוויר של חלקה ${blockKey}" class="photo-map-img">
+      ${pins}
+    </div>
+    ${note}
+  `;
+}
+
 
 function buildBlockSVG(blockKey, highlightId){
   const dim = getBlockDims()[blockKey];
@@ -1838,7 +1896,6 @@ function buildBlockSVG(blockKey, highlightId){
   svg += `</svg>`;
   return svg;
 }
-let currentBlockKey = null;
 
 /* ============ SEARCH (only over named entries) ============ */
 const input = document.getElementById('search-input');
