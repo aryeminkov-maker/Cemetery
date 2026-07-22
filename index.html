@@ -575,6 +575,17 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="manifest" href="manifest.json">
+<script>
+// עובד רשת (service worker) לתמיכה חלקית בעבודה אופליין - שומר בקאש את קובץ
+// האתר ואת תמונות האוויר, כדי שחיפוש/מפה/דפי קברים יעבדו גם עם קליטה חלשה/בלי
+// אינטרנט (הנתונים החיים מול Google Sheets ימשיכו לדרוש רשת, כרגיל).
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
 </head>
 <body>
 
@@ -729,6 +740,9 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
             <button class="nav-icon-btn" onclick="reportGraveIssue()" aria-label="דיווח על טעות בפרטים / עדכון פרטים" title="דיווח על טעות בפרטים / עדכון פרטים">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
             </button>
+            <button class="nav-icon-btn" onclick="printGraveLocation(currentHighlight)" aria-label="הדפסת הוראות הגעה לקבר" title="הדפסת הוראות הגעה לקבר">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="6" y="13" width="12" height="8" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="9" width="18" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
           </div>
         </div>
         <div class="detail-years" id="d-years"></div>
@@ -827,8 +841,15 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
     <div id="admin-dashboard" style="display:none;">
       <div class="admin-session-note" id="admin-session-note"></div>
 
-      <div style="text-align:left;margin-bottom:14px;">
+      <div style="text-align:left;margin-bottom:14px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-ghost" id="admin-auditlog-toggle-btn" onclick="toggleAuditLogSection()" style="display:none;">📋 פעילות אחרונה</button>
         <button class="btn-ghost" id="admin-permissions-toggle-btn" onclick="togglePermissionsSection()" style="display:none;">ניהול הרשאות</button>
+      </div>
+
+      <div id="admin-auditlog-section" style="display:none;margin-bottom:28px;">
+        <div class="section-title" style="font-size:18px;">פעילות אחרונה</div>
+        <div class="section-sub">100 הפעולות האחרונות שבוצעו בממשק הניהול (הוספה/עדכון/מחיקה/תמונות/הרשאות). רק מנהלים רואים את הקטע הזה.</div>
+        <div id="auditlog-list" class="admin-list" style="margin-top:12px;"></div>
       </div>
 
       <div id="admin-permissions-section" style="display:none;margin-bottom:28px;">
@@ -997,7 +1018,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
         <div class="section-sub" id="calib-row-align-note" style="margin-top:-4px;margin-bottom:6px;"></div>
         <div id="calib-photo-scroll" dir="ltr" style="width:100%;overflow:auto;max-height:65vh;border:1px solid var(--stone-line);border-radius:10px;">
           <div class="photo-map-wrap" id="calib-photo-wrap" style="overflow:visible;cursor:crosshair;transition:width .15s;">
-            <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול">
+            <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול" onerror="document.getElementById('calib-armed-note').innerHTML='❌ התמונה של החלקה הזו לא נטענה. ודאו שהקובץ הועלה לתיקיית photos/ בשם הנכון.';">
           </div>
         </div>
         <div class="section-sub" style="margin-top:4px;">בהגדלה, אפשר לגלול/לגרור בתוך התמונה (עם הסקרולבר או עם מקש הגלגלת) כדי להגיע לכל אזור, ולדייק את מיקום הנקודה.</div>
@@ -1117,6 +1138,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyKh1XdxQTpwJqHkH055KpL
 const GOOGLE_CLIENT_ID = '656595279986-48a5mirlpia1rb1r032h7vgbn6optek7.apps.googleusercontent.com';
 const WAZE_URL = 'https://www.waze.com/he/live-map/directions/%D7%91%D7%99%D7%AA-%D7%A2%D7%9C%D7%9E%D7%99%D7%9F-%D7%91%D7%99%D7%AA-%D7%90%D7%9C?to=place.w.23068991.230886522.22345';
 const CONTACT_EMAIL = 'm.dat@bet-el.muni.il'; // כתובת ליצירת קשר / דיווח על טעויות — ניתן לעדכן
+
+// מיועד לחיטוי טקסט לפני הכנסה כ-innerHTML, כדי למנוע החדרת HTML/JS זדוני
+// (למשל דרך שם קבר שהוזן בממשק הניהול, או דרך שאילתת חיפוש של מבקר באתר).
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 /* ============ FALLBACK DATA (used if the live sheet can't be reached) ============ */
 const FALLBACK_GRAVES = [
@@ -1855,7 +1883,7 @@ function buildBlockPhotoView(blockKey, highlightId){
     const style = isHi
       ? `left:${g.photoX}%;top:${g.photoY}%;width:20px;height:20px;margin-left:-10px;margin-top:-10px;background:var(--candle);border-width:3px;`
       : `left:${g.photoX}%;top:${g.photoY}%;`;
-    return `<div class="${cls}" style="${style}" title="${graveLabel(g)}" onclick="openDetail(${g.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${graveLabel(g)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`;
+    return `<div class="${cls}" style="${style}" title="${escapeHtml(graveLabel(g))}" onclick="openDetail(${g.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${escapeHtml(graveLabel(g))}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`;
   }).join('');
   const uncalibratedCount = graves.filter(g => g.block === blockKey && (g.photoX == null || g.photoY == null)).length;
   const note = uncalibratedCount > 0
@@ -1863,7 +1891,7 @@ function buildBlockPhotoView(blockKey, highlightId){
     : '';
   return `
     <div class="photo-map-wrap" style="border:1px solid var(--stone-line);border-radius:10px;overflow:hidden;">
-      <img src="${src}" alt="תמונת אוויר של חלקה ${blockKey}" class="photo-map-img">
+      <img src="${src}" alt="תמונת אוויר של חלקה ${blockKey}" class="photo-map-img" onerror="setBlockSubMode('schematic')">
       ${pins}
     </div>
     ${note}
@@ -1916,8 +1944,8 @@ input.addEventListener('input', ()=>{
   if(!matches.length){ box.style.display='none'; return; }
   box.innerHTML = matches.slice(0,2).map(g=>`
     <div class="suggestion-item" onclick="openDetail(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
-      <span>${graveLabel(g)}</span>
-      <span class="loc">חלקה ${g.block} · קבר #${g.num ?? g.id}</span>
+      <span>${escapeHtml(graveLabel(g))}</span>
+      <span class="loc">חלקה ${escapeHtml(g.block)} · קבר #${g.num ?? g.id}</span>
     </div>`).join('');
   box.style.display='block';
 });
@@ -1938,15 +1966,15 @@ function performSearch(){
   if(!matches.length){
     list.innerHTML = '';
     document.getElementById('results-sub').innerHTML =
-      `<div class="empty-state">לא נמצאה התאמה לשם "${q}".<br>נסו לבדוק את האיות, או פנו לצוות הניהול לסיוע.</div>`;
+      `<div class="empty-state">לא נמצאה התאמה לשם "${escapeHtml(q)}".<br>נסו לבדוק את האיות, או פנו לצוות הניהול לסיוע.</div>`;
   } else {
     list.innerHTML = matches.map(g=>`
       <div class="result-card" onclick="openDetail(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
         <div>
-          <div class="result-name">${graveLabel(g)}</div>
+          <div class="result-name">${escapeHtml(graveLabel(g))}</div>
           <div class="result-dates">${g.status!=='occupied' ? 'מקום שמור' : (formatDate(g.death) ? 'תאריך הפטירה: ' + formatDate(g.death) : 'תאריך פטירה לא רשום')}</div>
         </div>
-        <div class="result-loc">חלקה ${g.block}</div>
+        <div class="result-loc">חלקה ${escapeHtml(g.block)}</div>
       </div>`).join('');
   }
   showView('view-results');
@@ -1973,7 +2001,7 @@ function openDetail(id){
   if(others.length){
     coBlock.style.display='block';
     document.getElementById('d-cooccupant').innerHTML = others.map(o =>
-      `<span class="plink" onclick="openDetail(${o.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${graveLabel(o)}</span>`
+      `<span class="plink" onclick="openDetail(${o.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${escapeHtml(graveLabel(o))}</span>`
     ).join(', ');
   } else {
     coBlock.style.display='none';
@@ -2053,13 +2081,49 @@ function reportGraveIssue(){
 }
 
 /* ============ MAP SVG BUILDER ============ */
+function printGraveLocation(id){
+  const g = graves.find(x => x.id === id);
+  if(!g) return;
+  const label = graveLabel(g);
+  const hasPhoto = BLOCK_PHOTOS[g.block] && g.photoX != null && g.photoY != null;
+  const win = window.open('', '_blank');
+  if(!win){ alert('נא לאפשר חלונות קופצים בדפדפן כדי להדפיס.'); return; }
+  const photoAbsUrl = hasPhoto ? new URL(BLOCK_PHOTOS[g.block], window.location.href).href : '';
+  const photoHtml = hasPhoto ? `
+    <div style="position:relative;width:100%;max-width:600px;margin:20px auto;border:1px solid #ccc;">
+      <img src="${photoAbsUrl}" style="width:100%;display:block;" alt="תמונת אוויר">
+      <div style="position:absolute;right:${100-g.photoX}%;top:${g.photoY}%;transform:translate(50%,-90%);font-size:26px;">📍</div>
+    </div>` : '<p style="color:#777;">אין עדיין תצלום אוויר מכויל לחלקה זו - השתמשו במפת בית העלמין באתר להתמצאות.</p>';
+  win.document.write(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8">
+    <title>הוראות הגעה - ${escapeHtml(label)}</title>
+    <style>
+      body{font-family:'Heebo',Arial,sans-serif;padding:24px;text-align:center;color:#222;}
+      h1{font-size:22px;margin-bottom:6px;}
+      .loc{font-size:16px;color:#555;margin-bottom:10px;}
+      .sub{font-size:13px;color:#999;}
+    </style></head>
+    <body>
+      <div class="sub">בית העלמין בית אל</div>
+      <h1>${escapeHtml(label)}</h1>
+      <div class="loc">חלקה ${escapeHtml(g.block)} · טור ${g.col+1} · שורה ${g.rowi+1}${g.num!=null?' · קבר #'+g.num:''}</div>
+      ${photoHtml}
+      <script>window.onload = function(){ window.print(); };<\/script>
+    </body></html>`);
+  win.document.close();
+}
+function photoMapFallbackToGrid(graveId){
+  const g = graves.find(x => x.id === graveId);
+  const holder = document.getElementById('mini-map-holder');
+  if(!g || !holder) return;
+  holder.innerHTML = buildMapSVG({ highlightId: graveId, mini: true, focusOn: g });
+}
 function buildPhotoMapView(g){
   const src = BLOCK_PHOTOS[g.block];
   const others = graves.filter(o => o.block === g.block && o.id !== g.id && o.photoX != null && o.photoY != null);
-  const otherPins = others.map(o => `<div class="photo-map-pin-other" style="left:${o.photoX}%;top:${o.photoY}%;" title="${graveLabel(o)}" onclick="openDetail(${o.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${graveLabel(o)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`).join('');
+  const otherPins = others.map(o => `<div class="photo-map-pin-other" style="left:${o.photoX}%;top:${o.photoY}%;" title="${escapeHtml(graveLabel(o))}" onclick="openDetail(${o.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${escapeHtml(graveLabel(o))}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`).join('');
   return `
     <div class="photo-map-wrap">
-      <img src="${src}" alt="תמונת אוויר של חלקה ${g.block}" class="photo-map-img">
+      <img src="${src}" alt="תמונת אוויר של חלקה ${g.block}" class="photo-map-img" onerror="photoMapFallbackToGrid(${g.id})">
       ${otherPins}
       <div class="photo-map-pin" style="left:${g.photoX}%;top:${g.photoY}%;" title="מיקום הקבר"></div>
     </div>
@@ -2147,7 +2211,7 @@ function openSpotPopup(key){
   } else {
     document.getElementById('pop-name').innerHTML = occupants.map(g =>
       `<div style="margin-bottom:4px;">
-         <span class="plink" onclick="openDetail(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${graveLabel(g)}</span>
+         <span class="plink" onclick="openDetail(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${escapeHtml(graveLabel(g))}</span>
          · <span class="plink" onclick="openPrayerSheet(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">תפילה</span>
        </div>`
     ).join('');
@@ -2307,12 +2371,18 @@ async function showAdminDashboard(){
 
   const permSection = document.getElementById('admin-permissions-section');
   const permToggleBtn = document.getElementById('admin-permissions-toggle-btn');
+  const auditToggleBtn = document.getElementById('admin-auditlog-toggle-btn');
+  const auditSection = document.getElementById('admin-auditlog-section');
   if(currentUserRole === 'admin'){
     permToggleBtn.style.display = 'inline-flex';
     permSection.style.display = 'none'; // מכווץ כברירת מחדל, נפתח בלחיצה
+    auditToggleBtn.style.display = 'inline-flex';
+    auditSection.style.display = 'none';
   } else {
     permToggleBtn.style.display = 'none';
     permSection.style.display = 'none';
+    auditToggleBtn.style.display = 'none';
+    auditSection.style.display = 'none';
   }
 
   renderAdminList();
@@ -2326,6 +2396,43 @@ function togglePermissionsSection(){
   } else {
     permSection.style.display = 'block';
     renderPermissionsList();
+  }
+}
+
+async function toggleAuditLogSection(){
+  const section = document.getElementById('admin-auditlog-section');
+  const isOpen = section.style.display !== 'none';
+  if(isOpen){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  const list = document.getElementById('auditlog-list');
+  list.innerHTML = '<div class="section-sub">טוען...</div>';
+  try{
+    const res = await apiWrite('auditLog', {});
+    const entries = res.entries || [];
+    if(!entries.length){
+      list.innerHTML = '<div class="section-sub">אין עדיין פעילות רשומה.</div>';
+      return;
+    }
+    const ACTION_LABELS = {
+      add:'הוספת קבר', update:'עדכון קבר', delete:'מחיקת קבר',
+      uploadPhoto:'העלאת תמונה', removePhoto:'הסרת תמונה',
+      addUser:'הוספת/עדכון הרשאה', removeUser:'הסרת הרשאה'
+    };
+    list.innerHTML = entries.map(e => {
+      const time = new Date(e.time).toLocaleString('he-IL');
+      const actionLabel = ACTION_LABELS[e.action] || e.action;
+      return `<div class="admin-list-item" style="cursor:default;">
+        <div>
+          <div class="admin-list-name">${escapeHtml(actionLabel)} — ${escapeHtml(String(e.targetId))}</div>
+          <div class="admin-list-loc">${escapeHtml(e.email)} · ${escapeHtml(time)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(err){
+    list.innerHTML = '<div class="admin-error">שגיאה בטעינת היומן: ' + escapeHtml(err.message) + '</div>';
   }
 }
 
@@ -2492,7 +2599,7 @@ function calibRenderList(){
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
               style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;${armed ? 'border-color:var(--candle);background:var(--ink-2);' : ''}">
       <div>
-        <div class="admin-list-name">${placed ? '✅' : '⬜'} שורה ${g.rowi+1} · טור ${g.col+1} — ${label}</div>
+        <div class="admin-list-name">${placed ? '✅' : '⬜'} שורה ${g.rowi+1} · טור ${g.col+1} — ${escapeHtml(label)}</div>
         <div class="admin-list-loc">קבר #${g.num ?? g.id}</div>
       </div>
       ${placed ? `<button type="button" class="a11y-ctrl-btn" style="flex-shrink:0;font-size:12px;padding:5px 9px;"
@@ -2550,7 +2657,7 @@ function calibUpdateArmedNote(){
   }
   const g = graves.find(x => x.id === calibArmedId);
   const label = g.name || (g.status==='reserved' ? 'שמור' : (g.status==='vacant' ? 'פנוי' : 'ללא שם'));
-  note.innerHTML = `<b>מכויל כרגע:</b> שורה ${g.rowi+1} · טור ${g.col+1} — ${label} (קבר #${g.num ?? g.id}). לחצו על מיקומו בתמונה.`;
+  note.innerHTML = `<b>מכויל כרגע:</b> שורה ${g.rowi+1} · טור ${g.col+1} — ${escapeHtml(label)} (קבר #${g.num ?? g.id}). לחצו על מיקומו בתמונה.`;
   viewBtn.style.display = 'inline-flex';
 }
 
@@ -2668,7 +2775,7 @@ function renderAdminList(){
   list.innerHTML = items.map(g => `
     <div class="admin-list-item" onclick="adminEditRecord(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
       <div>
-        <div class="admin-list-name">${adminGraveLabel(g)}</div>
+        <div class="admin-list-name">${escapeHtml(adminGraveLabel(g))}</div>
         <div class="admin-list-loc">חלקה ${g.block} · טור ${g.col+1} · שורה ${g.rowi+1}${g.num?' · קבר '+g.num:''}</div>
       </div>
       <span style="color:var(--muted);font-size:18px;">›</span>
@@ -2764,7 +2871,7 @@ function adminEditRecord(id){
   const dgWrap = document.getElementById('admin-double-grave-actions');
   if(partner){
     const partnerLabel = partner.name || (partner.status==='reserved' ? 'שמור' : (partner.status==='vacant' ? 'פנוי' : 'ללא שם'));
-    dgWrap.innerHTML = `<button type="button" class="btn-ghost" onclick="adminEditRecord(${partner.id})">🔁 מעבר לצד השני של הקבר הכפול (${(partner.depth||1)===1?'ראשון':'שני'} — ${partnerLabel})</button>`;
+    dgWrap.innerHTML = `<button type="button" class="btn-ghost" onclick="adminEditRecord(${partner.id})">🔁 מעבר לצד השני של הקבר הכפול (${(partner.depth||1)===1?'ראשון':'שני'} — ${escapeHtml(partnerLabel)})</button>`;
   } else {
     dgWrap.innerHTML = `<button type="button" class="btn-ghost" onclick="adminAddDoublePartner('${g.block}',${g.col},${g.rowi},${g.depth||1})">➕ הוספת נפטר נוסף באותה משבצת (קבר כפול)</button>`;
   }
@@ -3091,7 +3198,8 @@ function normalizeName(raw){
 }
 
 function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function toHebrewNumeral(num){

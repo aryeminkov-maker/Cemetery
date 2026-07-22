@@ -1,0 +1,12 @@
+{
+  "name": "בית עלמין בית אל",
+  "short_name": "בית עלמין",
+  "description": "איתור קברים ומידע על בית העלמין בבית אל",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F1EDE0",
+  "theme_color": "#5D6D4E",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": []
+}
