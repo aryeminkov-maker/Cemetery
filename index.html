@@ -380,6 +380,12 @@ body.a11y-no-motion, body.a11y-no-motion *{
   filter:drop-shadow(0 2px 3px rgba(0,0,0,0.55));
 }
 .photo-map-pin::after{content:'📍';}
+.photo-map-pin-other{
+  position:absolute;width:14px;height:14px;margin-left:-7px;margin-top:-7px;
+  border-radius:50%;background:var(--cypress);border:2px solid #FFFFFF;
+  box-shadow:0 1px 3px rgba(0,0,0,0.5);cursor:pointer;transition:.15s;
+}
+.photo-map-pin-other:hover{transform:scale(1.3);background:var(--candle);}
 .map-card .btn-ghost{margin-top:12px;align-self:center;}
 
 /* ---------- map view ---------- */
@@ -861,6 +867,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <div id="admin-view-card-link" style="display:none;margin-bottom:16px;text-align:left;">
         <a href="#" onclick="adminViewPublicCard(); return false;" class="plink">צפייה בכרטיס הקבר באפליקציה ←</a>
       </div>
+      <div id="admin-double-grave-actions" style="display:none;margin-bottom:16px;"></div>
       <div class="admin-field">
         <label>סטטוס</label>
         <div class="chip-group" id="admin-status-group">
@@ -969,6 +976,10 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
       <label>חלקה</label>
       <select id="calib-block-select" onchange="calibSelectBlock(this.value)"></select>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn-ghost" onclick="calibExportBackup()">💾 גיבוי כיולים (CSV)</button>
+      <span class="section-sub" style="margin:0;">בנוסף: לגיליון עצמו יש גם היסטוריית גרסאות מובנית של Google (File → Version history), שאפשר לשחזר ממנה בכל שלב.</span>
+    </div>
 
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;align-items:flex-start;">
       <div style="flex:2;min-width:280px;">
@@ -976,6 +987,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
           <img id="calib-photo-img" class="photo-map-img" alt="תמונת אוויר לכיול">
         </div>
         <div class="section-sub" id="calib-armed-note" style="margin-top:10px;"></div>
+        <button type="button" class="btn-ghost" id="calib-view-grave-btn" onclick="if(calibArmedId) openDetail(calibArmedId);" style="margin-top:8px;display:none;">🔗 צפייה בדף הקבר הציבורי</button>
       </div>
       <div style="flex:1;min-width:220px;max-height:520px;overflow-y:auto;">
         <div id="calib-grave-list" class="admin-list"></div>
@@ -1477,7 +1489,9 @@ function graveXY(g){
 // תמונות אמיתיות (רחפן) לפי חלקה - כשיש תמונה לחלקה, עמוד הקבר יציג סיכה על גבי
 // התמונה האמיתית (אם למקום הקבר הספציפי כבר כויל מיקום), במקום מפת הרשת המופשטת.
 const BLOCK_PHOTOS = {
-  'א': 'photos/block-a.jpg'
+  'א': 'photos/block-a.jpg',
+  'ב': 'photos/block-b.jpg',
+  'ג': 'photos/block-c.jpg'
 };
 
 function spotKey(g){ return g.block+'_'+g.col+'_'+g.rowi; }
@@ -1823,12 +1837,16 @@ input.addEventListener('input', ()=>{
   const q = input.value.trim();
   const box = document.getElementById('suggestions');
   if(!q){ box.style.display='none'; return; }
-  const matches = graves.filter(g=>g.name && g.name.includes(q));
+  const qNum = q.replace(/[^\d]/g, '');
+  const matches = graves.filter(g =>
+    (g.name && g.name.includes(q)) ||
+    (qNum && g.num != null && String(g.num) === qNum)
+  );
   if(!matches.length){ box.style.display='none'; return; }
   box.innerHTML = matches.slice(0,2).map(g=>`
     <div class="suggestion-item" onclick="openDetail(${g.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
       <span>${graveLabel(g)}</span>
-      <span class="loc">חלקה ${g.block}</span>
+      <span class="loc">חלקה ${g.block} · קבר #${g.num ?? g.id}</span>
     </div>`).join('');
   box.style.display='block';
 });
@@ -1838,7 +1856,11 @@ function performSearch(){
   const q = input.value.trim();
   document.getElementById('suggestions').style.display='none';
   if(!q) return;
-  const matches = graves.filter(g=>g.name && g.name.includes(q));
+  const qNum = q.replace(/[^\d]/g, '');
+  const matches = graves.filter(g =>
+    (g.name && g.name.includes(q)) ||
+    (qNum && g.num != null && String(g.num) === qNum)
+  );
   document.getElementById('results-title').textContent = `תוצאות עבור "${q}"`;
   document.getElementById('results-sub').textContent = matches.length ? `נמצאו ${matches.length} התאמות` : '';
   const list = document.getElementById('result-list');
@@ -1962,9 +1984,12 @@ function reportGraveIssue(){
 /* ============ MAP SVG BUILDER ============ */
 function buildPhotoMapView(g){
   const src = BLOCK_PHOTOS[g.block];
+  const others = graves.filter(o => o.block === g.block && o.id !== g.id && o.photoX != null && o.photoY != null);
+  const otherPins = others.map(o => `<div class="photo-map-pin-other" style="left:${o.photoX}%;top:${o.photoY}%;" title="${graveLabel(o)}" onclick="openDetail(${o.id})" tabindex="0" role="button" aria-label="מעבר לקבר: ${graveLabel(o)}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"></div>`).join('');
   return `
     <div class="photo-map-wrap">
       <img src="${src}" alt="תמונת אוויר של חלקה ${g.block}" class="photo-map-img">
+      ${otherPins}
       <div class="photo-map-pin" style="left:${g.photoX}%;top:${g.photoY}%;" title="מיקום הקבר"></div>
     </div>
   `;
@@ -2093,6 +2118,16 @@ let googleSignInReady = false;
 
 function goAdmin(){
   showView('view-admin');
+  if(adminIdToken){
+    // כבר מחוברים - טוענים רק את הנתונים המלאים והמאומתים (loadGravesFull, בתוך
+    // showAdminDashboard). בכוונה לא מריצים כאן גם loadGraves() הציבורי במקביל:
+    // שתי טעינות בו-זמנית בלי סדר מובטח יצרו מרוץ (race condition) שבו התוצאה
+    // שמסתיימת אחרונה "מנצחת" ויכולה לדרוס בזיכרון נתונים טריים (כמו כיול מיקום
+    // שזה עתה נשמר) בנתונים ישנים יותר - זה בדיוק מה שגרם לכיולים "להיעלם".
+    document.getElementById('admin-datasource-note').textContent = 'טוען נתונים מהגיליון...';
+    showAdminDashboard();
+    return;
+  }
   document.getElementById('admin-datasource-note').textContent =
     dataSource === 'live' ? 'מחובר לגיליון החי — שינויים ישמרו ויופיעו מיד בחיפוש'
                            : 'טוען נתונים מהגיליון...';
@@ -2102,9 +2137,7 @@ function goAdmin(){
                              : 'לא מחובר כרגע לגיליון החי (בדוק את הגדרת API_URL) — שמירה לא תעבוד';
     if(document.getElementById('admin-dashboard').style.display !== 'none') renderAdminList();
   });
-  if(adminIdToken){
-    showAdminDashboard();
-  } else {
+  {
     document.getElementById('admin-login').style.display = 'block';
     document.getElementById('admin-dashboard').style.display = 'none';
     document.getElementById('admin-form-wrap').style.display = 'none';
@@ -2323,6 +2356,22 @@ function adminExportCSV(){
 let calibBlock = null;
 let calibArmedId = null;
 
+function calibExportBackup(){
+  const calibrated = graves.filter(g => g.photoX != null && g.photoY != null);
+  if(!calibrated.length){ alert('אין עדיין כיולים לגבות.'); return; }
+  const headers = ['id','חלקה','מספר קבר','שם','photoX','photoY'];
+  const rows = calibrated.map(g => [g.id, g.block, g.num ?? '', g.name || statusHebrew(g.status), g.photoX, g.photoY]);
+  const csvLines = [headers, ...rows].map(r => r.map(csvEscape).join(','));
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
+  const blob = new Blob([csvContent], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'גיבוי-כיולי-מיקום-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function openPhotoCalib(){
   const blocks = Object.keys(BLOCK_PHOTOS);
   if(!blocks.length){ alert('אין עדיין תמונה מוגדרת לאף חלקה.'); return; }
@@ -2399,13 +2448,16 @@ function calibArmGrave(id){
 
 function calibUpdateArmedNote(){
   const note = document.getElementById('calib-armed-note');
+  const viewBtn = document.getElementById('calib-view-grave-btn');
   if(!calibArmedId){
-    note.textContent = 'בחרו קבר מהרשימה מימין, ואז לחצו על מיקומו בתמונה.';
+    note.textContent = 'בחרו קבר מהרשימה מימין, או לחצו על סיכה קיימת בתמונה כדי לזהות אותה, ואז לחצו על מיקומו בתמונה כדי לכייל/לעדכן.';
+    viewBtn.style.display = 'none';
     return;
   }
   const g = graves.find(x => x.id === calibArmedId);
   const label = g.name || (g.status==='reserved' ? 'שמור' : (g.status==='vacant' ? 'פנוי' : 'ללא שם'));
-  note.innerHTML = `<b>מכויל כרגע:</b> שורה ${g.rowi+1} · טור ${g.col+1} — ${label}. לחצו על מיקומו בתמונה.`;
+  note.innerHTML = `<b>מכויל כרגע:</b> שורה ${g.rowi+1} · טור ${g.col+1} — ${label} (קבר #${g.num ?? g.id}). לחצו על מיקומו בתמונה.`;
+  viewBtn.style.display = 'inline-flex';
 }
 
 function calibRenderPins(){
@@ -2417,7 +2469,10 @@ function calibRenderPins(){
     pin.className = 'photo-map-pin calib-pin';
     pin.style.left = g.photoX + '%';
     pin.style.top = g.photoY + '%';
-    pin.title = (g.name || 'ללא שם') + ' — שורה ' + (g.rowi+1) + ' טור ' + (g.col+1);
+    pin.style.pointerEvents = 'auto';
+    pin.style.cursor = 'pointer';
+    pin.title = (g.name || 'ללא שם') + ' — שורה ' + (g.rowi+1) + ' טור ' + (g.col+1) + ' (קבר #' + (g.num ?? g.id) + ') — לחצו כדי לזהות';
+    pin.onclick = (e) => { e.stopPropagation(); calibArmGrave(g.id); };
     wrap.appendChild(pin);
   });
 }
@@ -2524,6 +2579,8 @@ function adminNewRecord(){
   document.getElementById('admin-link-text').value = '';
   document.getElementById('admin-photo-field').style.display = 'none'; // אין עדיין מזהה קבר לצרף אליו תמונה
   document.getElementById('admin-view-card-link').style.display = 'none'; // אין עדיין כרטיס לצפות בו
+  document.getElementById('admin-double-grave-actions').style.display = 'none';
+  document.getElementById('admin-double-grave-actions').innerHTML = '';
   document.getElementById('admin-form-error').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'none';
   document.getElementById('admin-form-wrap').style.display = 'block';
@@ -2570,6 +2627,29 @@ function adminEditRecord(id){
   document.getElementById('admin-form-error').style.display = 'none';
   document.getElementById('admin-dashboard').style.display = 'none';
   document.getElementById('admin-form-wrap').style.display = 'block';
+
+  // קבר כפול - איתור השותף (רשומה אחרת באותה משבצת בדיוק: אותה חלקה/טור/שורה)
+  const partner = graves.find(x => x.id !== g.id && x.block === g.block && x.col === g.col && x.rowi === g.rowi);
+  const dgWrap = document.getElementById('admin-double-grave-actions');
+  if(partner){
+    const partnerLabel = partner.name || (partner.status==='reserved' ? 'שמור' : (partner.status==='vacant' ? 'פנוי' : 'ללא שם'));
+    dgWrap.innerHTML = `<button type="button" class="btn-ghost" onclick="adminEditRecord(${partner.id})">🔁 מעבר לצד השני של הקבר הכפול (${(partner.depth||1)===1?'ראשון':'שני'} — ${partnerLabel})</button>`;
+  } else {
+    dgWrap.innerHTML = `<button type="button" class="btn-ghost" onclick="adminAddDoublePartner('${g.block}',${g.col},${g.rowi},${g.depth||1})">➕ הוספת נפטר נוסף באותה משבצת (קבר כפול)</button>`;
+  }
+  dgWrap.style.display = 'block';
+}
+
+function adminAddDoublePartner(block, col, rowi, existingDepth){
+  adminNewRecord();
+  document.getElementById('admin-block').value = block;
+  document.getElementById('admin-col').value = col;
+  document.getElementById('admin-rowi').value = rowi;
+  const otherDepth = existingDepth === 2 ? 1 : 2;
+  document.getElementById('admin-depth-group').querySelector(`input[value="${otherDepth}"]`).checked = true;
+  const dgWrap = document.getElementById('admin-double-grave-actions');
+  dgWrap.innerHTML = `<div class="section-sub" style="margin:0;">מוסיפים נפטר/ת נוסף/ת באותה משבצת בדיוק (חלקה ${block}, טור ${col+1}, שורה ${rowi+1}) — קבר כפול. מלאו את הפרטים ושמרו.</div>`;
+  dgWrap.style.display = 'block';
 }
 
 function adminCancelForm(){
