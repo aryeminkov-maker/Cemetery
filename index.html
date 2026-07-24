@@ -806,7 +806,7 @@ if('serviceWorker' in navigator){
       <div class="legend-item"><span class="legend-dot" style="background:#D9C79A"></span> שמור</div>
     </div>
     <div class="full-map-holder" id="schematic-holder">
-      <div class="full-map-scroll" id="full-map-scroll"></div>
+      <div class="full-map-scroll" id="full-map-scroll" dir="ltr"></div>
     </div>
     <div class="block-holder" id="block-holder" style="display:none;">
       <div class="block-picker" id="block-picker"></div>
@@ -2274,6 +2274,16 @@ function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
     svg += `<path d="M${tx} ${ty} l6 14 h-12 z M${tx} ${ty+5} l8 16 h-16 z" fill="#7C9268"/><rect x="${tx-1.5}" y="${ty+19}" width="3" height="6" fill="#B7AE96"/>`;
   });
 
+  // כיווני אוויר - צפון למעלה, דרום למטה (רק במפה המלאה, לא בתצוגה הממוזערת)
+  if(!mini){
+    svg += `<g font-family="Heebo, sans-serif" fill="#8A7F63">
+      <text x="1580" y="18" font-size="12" text-anchor="middle">צפון</text>
+      <path d="M1580 24 l-5 9 h10 z" fill="#8A7F63"/>
+      <path d="M1580 322 l-5 -9 h10 z" fill="#8A7F63"/>
+      <text x="1580" y="335" font-size="12" text-anchor="middle">דרום</text>
+    </g>`;
+  }
+
   const spots = getSpots();
   Object.entries(spots).forEach(([k,spotGraves])=>{
     const g0 = spotGraves[0];
@@ -2293,9 +2303,14 @@ function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
 }
 
 function renderFullMap(){
-  document.getElementById('full-map-scroll').innerHTML = buildMapSVG({highlightId: currentHighlight});
+  const scrollEl = document.getElementById('full-map-scroll');
+  scrollEl.innerHTML = buildMapSVG({highlightId: currentHighlight});
   currentScale = 1;
   document.getElementById('full-map-svg').style.transform = 'scale(1)';
+  // ברירת מחדל: למרכז את המפה אופקית (במקום להתחיל מהקצה השמאלי)
+  requestAnimationFrame(() => {
+    scrollEl.scrollLeft = (scrollEl.scrollWidth - scrollEl.clientWidth) / 2;
+  });
 }
 
 function zoomMap(delta){
