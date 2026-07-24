@@ -1560,13 +1560,19 @@ function getBlockDims(){
 }
 
 const CELL = 26;
-// פריסת המפה הכללית: אחרי תיקון יישור עמודות הקברים הכפולים, שלוש החלקות דומות
-// בהרבה יותר ברוחב - חוזרים לפריסה פשוטה של שלושתן זו מתחת לזו.
+// פריסת המפה הכללית: חלקה א׳ למעלה וחלקה ב׳ מתחתיה בצד שמאל, במרכז שני תיבות
+// עיצוביות (חלקה צבאית, סככת הספדים) שמייצגות אזורים אמיתיים בשטח שאינם חלק
+// מנתוני הקברים, וחלקה ג׳ מימין להן.
 const BLOCK_LAYOUT = {
-  'א': {x:30, y:60,  label:'חלקה א׳'},
-  'ב': {x:30, y:204, label:'חלקה ב׳'},
-  'ג': {x:30, y:348, label:'חלקה ג׳'}
+  'א': {x:30,  y:60,  label:'חלקה א׳'},
+  'ב': {x:30,  y:204, label:'חלקה ב׳'},
+  'ג': {x:936, y:158, label:'חלקה ג׳'}
 };
+// תיבות עיצוביות (לא חלק מנתוני הקברים) - ממורכזות אנכית מול הגובה המשולב של א+ב
+const DECOR_BOXES = [
+  {x:616, y:119, w:130, h:130, label:'חלקה צבאית'},
+  {x:776, y:119, w:130, h:130, label:'סככת הספדים'}
+];
 function graveXY(g){
   const bl = BLOCK_LAYOUT[g.block];
   const rows = getBlockDims()[g.block].rows;
@@ -2238,11 +2244,11 @@ function buildPhotoMapView(g){
 }
 function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
   const focusXY = focusOn ? graveXY(focusOn) : null;
-  const vb = focusXY ? `${focusXY.x-130} ${focusXY.y-110} 260 220` : `0 0 710 430`;
-  const w = mini ? '100%' : 710;
+  const vb = focusXY ? `${focusXY.x-130} ${focusXY.y-110} 260 220` : `0 0 1620 340`;
+  const w = mini ? '100%' : 1620;
 
-  let svg = `<svg id="${mini?'mini-map-svg':'full-map-svg'}" viewBox="${vb}" width="${w}" style="width:${mini?'100%':'710px'};max-width:${mini?'100%':'none'};height:auto;display:block;">`;
-  svg += `<rect x="0" y="0" width="710" height="430" fill="#F1EDE0"/>`;
+  let svg = `<svg id="${mini?'mini-map-svg':'full-map-svg'}" viewBox="${vb}" width="${w}" style="width:${mini?'100%':'1620px'};max-width:${mini?'100%':'none'};height:auto;display:block;">`;
+  svg += `<rect x="0" y="0" width="1620" height="340" fill="#F1EDE0"/>`;
 
   Object.entries(BLOCK_LAYOUT).forEach(([key,bl])=>{
     const dim = getBlockDims()[key];
@@ -2251,8 +2257,19 @@ function buildMapSVG({highlightId=null, mini=false, focusOn=null}={}){
     svg += `<text x="${bl.x+w2/2}" y="${bl.y-10}" fill="#6E7A61" font-size="13" font-family="Frank Ruhl Libre, serif" text-anchor="middle">${bl.label}</text>`;
   });
 
+  // תיבות עיצוביות (חלקה צבאית / סככת הספדים) - לא לחיצות, לצורך התמצאות בלבד
+  DECOR_BOXES.forEach(db=>{
+    svg += `<rect x="${db.x}" y="${db.y}" width="${db.w}" height="${db.h}" rx="6" fill="#E7E2D2" stroke="#BFC7AC" stroke-width="1.5"/>`;
+    const words = db.label.split(' ');
+    const lineH = 15;
+    const startY = db.y + db.h/2 - ((words.length-1)*lineH)/2;
+    words.forEach((word,i)=>{
+      svg += `<text x="${db.x+db.w/2}" y="${startY + i*lineH}" fill="#6E7A61" font-size="13" font-family="Frank Ruhl Libre, serif" text-anchor="middle">${word}</text>`;
+    });
+  });
+
   // cypress trees decoration near top
-  const trees = [ [80,18],[300,18],[500,18],[650,18] ];
+  const trees = [ [80,18],[400,18],[700,18],[1000,18],[1300,18],[1550,18] ];
   trees.forEach(([tx,ty])=>{
     svg += `<path d="M${tx} ${ty} l6 14 h-12 z M${tx} ${ty+5} l8 16 h-16 z" fill="#7C9268"/><rect x="${tx-1.5}" y="${ty+19}" width="3" height="6" fill="#B7AE96"/>`;
   });
