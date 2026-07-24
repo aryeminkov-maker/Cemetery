@@ -381,11 +381,11 @@ body.a11y-no-motion, body.a11y-no-motion *{
 }
 .photo-map-pin::after{content:'📍';}
 .photo-map-pin-other{
-  position:absolute;width:14px;height:14px;margin-left:-7px;margin-top:-7px;
-  border-radius:50%;background:var(--cypress);border:2px solid #FFFFFF;
-  box-shadow:0 1px 3px rgba(0,0,0,0.5);cursor:pointer;transition:.15s;
+  position:absolute;width:8px;height:8px;margin-left:-4px;margin-top:-4px;
+  border-radius:50%;background:var(--cypress);border:1.5px solid #FFFFFF;
+  box-shadow:0 1px 2px rgba(0,0,0,0.35);cursor:pointer;transition:.15s;opacity:.6;
 }
-.photo-map-pin-other:hover{transform:scale(1.3);background:var(--candle);}
+.photo-map-pin-other:hover{transform:scale(1.6);background:var(--candle);opacity:1;}
 .map-card .btn-ghost{margin-top:12px;align-self:center;}
 
 /* ---------- map view ---------- */
@@ -962,12 +962,12 @@ if('serviceWorker' in navigator){
           </select>
         </div>
         <div class="admin-field">
-          <label>טור (מתחיל מ-0)</label>
-          <input type="number" id="admin-col" min="0" value="0">
+          <label>טור (כפי שמוצג באתר - מתחיל מ-1)</label>
+          <input type="number" id="admin-col" min="1" value="1">
         </div>
         <div class="admin-field">
-          <label>שורה (מתחילה מ-0)</label>
-          <input type="number" id="admin-rowi" min="0" value="0">
+          <label>שורה (כפי שמוצגת באתר - מתחילה מ-1)</label>
+          <input type="number" id="admin-rowi" min="1" value="1">
         </div>
       </div>
       <div class="admin-field-row">
@@ -2829,6 +2829,7 @@ async function calibResetGrave(id){
 
 function calibArmGrave(id){
   calibArmedId = id;
+  calibRenderPins();
   calibRenderList();
   calibUpdateArmedNote();
 }
@@ -2852,8 +2853,9 @@ function calibRenderPins(){
   wrap.querySelectorAll('.calib-pin').forEach(el => el.remove());
   calibGraves().forEach(g => {
     if(g.photoX == null || g.photoY == null) return;
+    const isArmed = g.id === calibArmedId;
     const pin = document.createElement('div');
-    pin.className = 'photo-map-pin calib-pin';
+    pin.className = (isArmed ? 'photo-map-pin' : 'photo-map-pin-other') + ' calib-pin';
     pin.style.left = g.photoX + '%';
     pin.style.top = g.photoY + '%';
     pin.style.pointerEvents = 'auto';
@@ -2935,9 +2937,19 @@ async function calibSavePosition(xr, yr, opts){
   }
   note.innerHTML = '✅ נשמר בהצלחה!' + (parts.length ? ' (' + parts.join(', ') + ')' : '');
   if(opts.autoAdvance !== false){
-    // מעבר אוטומטי לקבר הבא ברשימה שעדיין לא כויל, לזרימת עבודה מהירה
-    const remaining = calibGraves().filter(gv => gv.photoX == null || gv.photoY == null);
-    calibArmedId = remaining.length ? remaining[0].id : null;
+    // מעבר אוטומטי - רק קדימה ברשימה (לפי סדר שורה/טור), ורק לקבר הבא שהוא "מלא"
+    // (לא שמור/פנוי/לא-מוגדר). אם דילגו על קבר קודם - לא חוזרים אליו אוטומטית.
+    const list = calibGraves();
+    const idx = list.findIndex(gv => gv.id === g.id);
+    let next = null;
+    for(let i = idx + 1; i < list.length; i++){
+      const gv = list[i];
+      if(gv.status === 'occupied' && (gv.photoX == null || gv.photoY == null)){
+        next = gv;
+        break;
+      }
+    }
+    calibArmedId = next ? next.id : null;
     calibRenderList();
     calibUpdateArmedNote();
   }
@@ -3036,8 +3048,8 @@ function adminNewRecord(){
   document.getElementById('admin-reservedfor').value = '';
   adminUpdateStatusFields();
   document.getElementById('admin-block').value = 'א';
-  document.getElementById('admin-col').value = 0;
-  document.getElementById('admin-rowi').value = 0;
+  document.getElementById('admin-col').value = 1;
+  document.getElementById('admin-rowi').value = 1;
   document.getElementById('admin-num').value = '';
   document.getElementById('admin-death').value = '';
   document.getElementById('admin-death-trigger').textContent = '📅 בחרו תאריך עברי';
@@ -3068,8 +3080,8 @@ function adminEditRecord(id){
   document.getElementById('admin-reservedfor').value = g.reservedFor || '';
   adminUpdateStatusFields();
   document.getElementById('admin-block').value = g.block;
-  document.getElementById('admin-col').value = g.col;
-  document.getElementById('admin-rowi').value = g.rowi;
+  document.getElementById('admin-col').value = g.col + 1;
+  document.getElementById('admin-rowi').value = g.rowi + 1;
   document.getElementById('admin-num').value = g.num || '';
   document.getElementById('admin-death').value = g.death || '';
   document.getElementById('admin-death-trigger').textContent = g.death ? fmtHD(g.death) : '📅 בחרו תאריך עברי';
@@ -3112,8 +3124,8 @@ function adminEditRecord(id){
 function adminAddDoublePartner(block, col, rowi, existingDepth){
   adminNewRecord();
   document.getElementById('admin-block').value = block;
-  document.getElementById('admin-col').value = col;
-  document.getElementById('admin-rowi').value = rowi;
+  document.getElementById('admin-col').value = col + 1;
+  document.getElementById('admin-rowi').value = rowi + 1;
   const otherDepth = existingDepth === 2 ? 1 : 2;
   document.getElementById('admin-depth-group').querySelector(`input[value="${otherDepth}"]`).checked = true;
   const dgWrap = document.getElementById('admin-double-grave-actions');
@@ -3161,8 +3173,8 @@ async function adminSaveRecord(){
   }
   const grave = {
     block: document.getElementById('admin-block').value,
-    col: Number(document.getElementById('admin-col').value) || 0,
-    rowi: Number(document.getElementById('admin-rowi').value) || 0,
+    col: (Number(document.getElementById('admin-col').value) || 1) - 1,
+    rowi: (Number(document.getElementById('admin-rowi').value) || 1) - 1,
     num: document.getElementById('admin-num').value ? Number(document.getElementById('admin-num').value) : '',
     status: statusHebrew(status),
     firstName: status === 'occupied' ? firstName : '',
