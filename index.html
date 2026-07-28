@@ -2872,6 +2872,8 @@ async function calibSavePosition(xr, yr, opts){
   if(!calibArmedId){ if(!opts.silent) alert('קודם בחרו קבר מהרשימה מימין.'); return; }
   if(calibSaving){ return; } // מתעלמים מקריאות נוספות בזמן שמירה קודמת - זה בדיוק מה שגרם למרוץ בין בקשות ולכשלים
   calibSaving = true;
+  const wrapEl = document.getElementById('calib-photo-wrap');
+  if(wrapEl) wrapEl.style.cursor = 'wait';
 
   const g = graves.find(gv => gv.id === calibArmedId);
   // יישור אוטומטי לפי שורה: רק בלחיצה חדשה, לא בדחיפה עדינה עם מקשי חצים
@@ -2933,6 +2935,7 @@ async function calibSavePosition(xr, yr, opts){
     calibRenderList();
     note.innerHTML = '❌ שמירה נכשלה: ' + err.message;
     calibSaving = false;
+    if(wrapEl) wrapEl.style.cursor = 'crosshair';
     return;
   }
   note.innerHTML = '✅ נשמר בהצלחה!' + (parts.length ? ' (' + parts.join(', ') + ')' : '');
@@ -2954,9 +2957,15 @@ async function calibSavePosition(xr, yr, opts){
     calibUpdateArmedNote();
   }
   calibSaving = false;
+  if(wrapEl) wrapEl.style.cursor = 'crosshair';
 }
 
 async function calibPhotoClick(event){
+  if(calibSaving){
+    const note = document.getElementById('calib-armed-note');
+    note.innerHTML = '⏳ עדיין שומר את הנקודה הקודמת בשרת... נא להמתין רגע ולנסות שוב (אין צורך ללחוץ שוב ושוב).';
+    return;
+  }
   const img = document.getElementById('calib-photo-img');
   const rect = img.getBoundingClientRect();
   const x = ((event.clientX - rect.left) / rect.width) * 100;
