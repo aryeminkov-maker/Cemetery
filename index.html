@@ -2122,7 +2122,7 @@ function openDetail(id){
   if(familyGraves.length){
     familyBlock.style.display = 'block';
     document.getElementById('d-family').innerHTML = familyGraves.map(fg =>
-      `<span class="plink" onclick="openDetail(${fg.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${escapeHtml(graveLabel(fg))} (חלקה ${escapeHtml(fg.block)})</span>`
+      `<span class="plink" onclick="openDetail(${fg.id})" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${escapeHtml(graveLabel(fg))}</span>`
     ).join('<br>');
   } else {
     familyBlock.style.display = 'none';
@@ -3206,7 +3206,8 @@ async function adminSaveRecord(){
   }
   try{
     await apiWrite(adminEditingId ? 'update' : 'add', { grave });
-    await loadGraves();
+    await syncReciprocalFamilyLinks(grave); // מוסיף קישור חזרה אוטומטית אצל כל קבר שקושר אליו כאן
+    await loadGravesFull();
     showToastMain('הרשומה נשמרה בהצלחה.');
     document.getElementById('admin-form-wrap').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
@@ -3217,13 +3218,34 @@ async function adminSaveRecord(){
   }
 }
 
+// קישור הדדי אוטומטי: אם קבר A מקשר לקבר B (לפי "מספר קבר"), מוודאים שגם ל-B
+// יש קישור חזרה ל-A - כך שמספיק לערוך צד אחד של הקשר המשפחתי, לא את שניהם.
+async function syncReciprocalFamilyLinks(grave){
+  const myNum = grave.num;
+  if(!myNum || !grave.familyLinks) return;
+  const linkedNums = grave.familyLinks.split(',').map(s=>s.trim()).filter(Boolean).map(Number).filter(n=>!isNaN(n));
+  for(const n of linkedNums){
+    const other = graves.find(x => x.num === n);
+    if(!other) continue;
+    const otherLinks = (other.familyLinks || '').split(',').map(s=>s.trim()).filter(Boolean).map(Number).filter(x=>!isNaN(x));
+    if(otherLinks.includes(Number(myNum))) continue; // כבר יש קישור חזרה
+    const newLinks = otherLinks.concat([Number(myNum)]).join(', ');
+    try{
+      await apiWrite('update', { grave: { id: other.id, familyLinks: newLinks } });
+      other.familyLinks = newLinks;
+    } catch(e){
+      // לא מפילים את השמירה הראשית בגלל כשל בעדכון ההדדי - רק מדלגים
+    }
+  }
+}
+
 async function adminDeleteRecord(){
   if(!adminEditingId) return;
   if(!confirm('למחוק את הרשומה הזו לצמיתות?')) return;
   const errEl = document.getElementById('admin-form-error');
   try{
     await apiWrite('delete', { grave: { id: adminEditingId } });
-    await loadGraves();
+    await loadGravesFull();
     showToastMain('הרשומה נמחקה.');
     document.getElementById('admin-form-wrap').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
