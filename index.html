@@ -3392,6 +3392,20 @@ loadGraves().then(()=>{
       }
     }
   }catch(e){}
+  // קישור ישיר לדף תפילה עם שם שהוקלד ידנית (לא קשור לקבר ספציפי): ?pname=...
+  try{
+    const params3 = new URLSearchParams(window.location.search);
+    const pname = params3.get('pname');
+    if(pname !== null && pname !== ''){
+      const pfather = params3.get('pfather') || '';
+      const pgender = params3.get('pgender') || 'm';
+      currentHighlight = null;
+      showView('view-prayer');
+      setTimeout(()=>{
+        if(window.mpGenerateFor) window.mpGenerateFor(pname, pgender, pfather);
+      }, 30);
+    }
+  }catch(e){}
 });
 </script>
 
@@ -3786,6 +3800,20 @@ function generate(values){
   els.formSection.classList.add('hidden');
   els.toolbar.classList.remove('hidden');
   window.scrollTo({top:0, behavior:'smooth'});
+  // אם הדף לא נוצר מקבר ספציפי (כניסה כללית + שם שהוקלד ידנית) - מקודדים את
+  // הפרטים בכתובת עצמה, כדי שגם דף כזה יהיה ניתן לשיתוף/שמירה בכפתור השיתוף.
+  try{
+    if(typeof currentHighlight === 'undefined' || !currentHighlight){
+      const url = new URL(window.location.href);
+      url.searchParams.delete('prayer');
+      url.searchParams.delete('grave');
+      url.searchParams.set('pname', values.name);
+      if(values.fatherName) url.searchParams.set('pfather', values.fatherName);
+      else url.searchParams.delete('pfather');
+      url.searchParams.set('pgender', values.gender || 'm');
+      history.replaceState(null, '', url.toString());
+    }
+  }catch(e){}
 }
 
 els.form.addEventListener('submit', (e) => {
@@ -3824,10 +3852,14 @@ document.getElementById('printBtn').addEventListener('click', () => window.print
 /* --- share --- */
 document.getElementById('shareBtn').addEventListener('click', async () => {
   const values = getFormValues();
-  const shareText = `דף תפילה על הקבר עבור ${values.name}`;
+  const link = window.location.href;
+  const title = `דף תפילה על הקבר עבור ${values.name}`;
+  if(navigator.share){
+    try{ await navigator.share({title, url:link}); return; }catch(e){ /* המשתמש ביטל או שיתוף נכשל - ניפול לגיבוי */ }
+  }
   try {
-    await navigator.clipboard.writeText(shareText);
-    showToast('הטקסט הועתק');
+    await navigator.clipboard.writeText(link);
+    showToast('הקישור הועתק ללוח');
   } catch(e){
     showToast('לא ניתן להעתיק כעת');
   }
