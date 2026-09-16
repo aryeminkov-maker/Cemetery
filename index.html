@@ -2379,7 +2379,7 @@ function openPrayerSheet(id){
     history.replaceState(null, '', url.toString());
   }catch(e){}
   setTimeout(()=>{
-    if(window.mpPrefill) window.mpPrefill(g.firstName || g.name, 'm', g.fatherName || '');
+    if(window.mpGenerateFor) window.mpGenerateFor(g.firstName || g.name, 'm', g.fatherName || '');
   }, 30);
 }
 function goPrayerDirect(){
