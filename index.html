@@ -1157,6 +1157,14 @@ if('serviceWorker' in navigator){
           <button class="tbtn" id="fontMinus" title="הקטן טקסט" aria-label="הקטן טקסט">A-</button>
           <button class="tbtn" id="fontPlus" title="הגדל טקסט" aria-label="הגדל טקסט">A+</button>
         </div>
+        <div class="scroll-controls" style="display:flex;align-items:center;gap:4px;">
+          <select id="scrollSpeedSelect" title="קצב גלילה אוטומטית" aria-label="קצב גלילה אוטומטית">
+            <option value="0.35">איטי</option>
+            <option value="0.7" selected>בינוני</option>
+            <option value="1.4">מהיר</option>
+          </select>
+          <button class="tbtn" id="autoScrollBtn" title="גלילה אוטומטית" aria-label="הפעלת גלילה אוטומטית">▶️</button>
+        </div>
         <button class="tbtn wide" id="printBtn" title="הדפסה">🖨️ הדפסה</button>
         <button class="tbtn wide" id="shareBtn" title="שיתוף">🔗 שיתוף</button>
         <button class="tbtn" id="editBtn" title="עריכה">✎</button>
@@ -1759,6 +1767,7 @@ let currentScale = 1;
 
 /* ============ NAV ============ */
 function showView(id){
+  if(id !== 'view-prayer' && window.mpStopAutoScroll) window.mpStopAutoScroll();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('nav-home').classList.toggle('active', id==='view-home'||id==='view-results'||id==='view-detail'||id==='view-prayer');
@@ -3840,6 +3849,7 @@ els.form.addEventListener('submit', (e) => {
 });
 
 document.getElementById('editBtn').addEventListener('click', () => {
+  if(window.mpStopAutoScroll) window.mpStopAutoScroll();
   els.formSection.classList.remove('hidden');
   els.toolbar.classList.add('hidden');
   els.sheet.innerHTML = '';
@@ -3862,6 +3872,47 @@ document.getElementById('fontMinus').addEventListener('click', () => {
   fontScale = Math.max(0.8, +(fontScale - 0.1).toFixed(2));
   applyFontScale();
 });
+
+/* --- auto-scroll (hands-free reading) --- */
+let autoScrollActive = false;
+let autoScrollRAF = null;
+let autoScrollLastTime = null;
+
+function autoScrollStep(timestamp){
+  if(!autoScrollActive) return;
+  if(autoScrollLastTime === null) autoScrollLastTime = timestamp;
+  const dt = timestamp - autoScrollLastTime;
+  autoScrollLastTime = timestamp;
+  const speed = parseFloat(document.getElementById('scrollSpeedSelect').value) || 0.7;
+  window.scrollBy(0, speed * dt / 16);
+  const atBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 2);
+  if(atBottom){ stopAutoScroll(); return; }
+  autoScrollRAF = requestAnimationFrame(autoScrollStep);
+}
+function startAutoScroll(){
+  autoScrollActive = true;
+  autoScrollLastTime = null;
+  const btn = document.getElementById('autoScrollBtn');
+  btn.textContent = '⏸️';
+  btn.title = 'עצירת גלילה אוטומטית';
+  autoScrollRAF = requestAnimationFrame(autoScrollStep);
+}
+function stopAutoScroll(){
+  autoScrollActive = false;
+  if(autoScrollRAF) cancelAnimationFrame(autoScrollRAF);
+  autoScrollRAF = null;
+  const btn = document.getElementById('autoScrollBtn');
+  if(btn){ btn.textContent = '▶️'; btn.title = 'גלילה אוטומטית'; }
+}
+document.getElementById('autoScrollBtn').addEventListener('click', () => {
+  if(autoScrollActive) stopAutoScroll(); else startAutoScroll();
+});
+// עצירה אוטומטית אם המשתמש גולל ידנית באמצע - מונע "מאבק" בין הגלילה
+// האוטומטית לגלילה הידנית, כדי שהמשתמש תמיד ישלוט במה שקורה במסך.
+let lastAutoScrollY = null;
+window.addEventListener('wheel', () => { if(autoScrollActive) stopAutoScroll(); }, {passive:true});
+window.addEventListener('touchmove', () => { if(autoScrollActive) stopAutoScroll(); }, {passive:true});
+window.mpStopAutoScroll = stopAutoScroll;
 
 /* --- print --- */
 document.getElementById('printBtn').addEventListener('click', () => window.print());
