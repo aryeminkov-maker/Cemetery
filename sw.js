@@ -4,20 +4,25 @@
 // נתוני הגיבוי המוטמעים בקובץ). בקשות לגיליון החי (Google Apps Script) תמיד
 // יוצאות לרשת בלבד ולא נשמרות בקאש, כדי לא להציג נתונים ישנים בטעות.
 
-const CACHE_NAME = 'beit-el-cemetery-v1';
+const CACHE_NAME = 'beit-el-cemetery-v2';
 const CACHE_FILES = [
   './',
   './beit-el-cemetery.html',
   './photos/block-a.jpg',
   './photos/block-b.jpg',
-  './photos/block-c.jpg'
+  './photos/block-c.jpg',
+  './photos/hero.jpg',
+  './photos/cemetery-overview.jpg',
+  './manifest.json'
 ];
 
 self.addEventListener('install', event => {
+  // כל קובץ נשמר בנפרד - קובץ חסר (למשל תמונה שעוד לא הועלתה, או שם קובץ שונה
+  // כמו index.html) לא מפיל את שמירת שאר הקבצים בקאש.
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CACHE_FILES))
-      .catch(() => {}) // אם קובץ מסוים חסר (למשל תמונה שעוד לא הועלתה) - לא נכשיל את כל ההתקנה
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(CACHE_FILES.map(f => cache.add(f).catch(() => {})))
+    )
   );
   self.skipWaiting();
 });
@@ -43,6 +48,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  const isAppShell = event.request.mode === 'navigate' || url.pathname.endsWith('.html');
+
+  if (isAppShell) {
+    // קובץ ה-HTML עצמו - קודם רשת (network-first), כדי שעדכון שהועלה יגיע מיד
+    // למבקרים, ורק אם אין בכלל אינטרנט נופלים לגרסה השמורה בקאש.
+    event.respondWith(
+      fetch(event.request).then(res => {
+        if (res && res.ok) {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone)).catch(() => {});
+        }
+        return res;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // קבצים אחרים (בעיקר תמונות) - קודם קאש (מהיר), עם עדכון ברקע לפעם הבאה
   event.respondWith(
     caches.match(event.request).then(cached => {
       const network = fetch(event.request).then(res => {
