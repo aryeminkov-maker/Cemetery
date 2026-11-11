@@ -155,10 +155,22 @@ body.a11y-no-motion, body.a11y-no-motion *{
   position:relative;
   border-radius:20px;
   overflow:hidden;
-  background:
-    linear-gradient(180deg, rgba(244,241,230,0.68) 0%, rgba(244,241,230,0.90) 60%, rgba(244,241,230,0.97) 100%),
-    url('photos/hero.jpg') center 62%/cover no-repeat;
+  /* שכבת בסיס: תמונה זעירה מוטמעת (כ-1KB) שמופיעה מיד ונמתחת בטשטוש טבעי */
+  background:url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAOABgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwClrN1q2rWNmq24VonMh2kZ3dvyrRsvFs6Wa/bIn85FIbMRGcAfzOapQTuhbL53fd+UfLWhb3UnCucg+1Z87RXKgk8WiS2YxQiWXzECxgclcZJ/Oirglj2EGFDuAJ+UUU+di5T/2Q==') center 62%/cover no-repeat;
 }
+/* התמונה המלאה נטענת ברקע ומתחלפת בהדרגה כשהיא מוכנה (המחלקה loaded מתווספת ב-JS) */
+.hero::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:url('photos/hero.webp') center 62%/cover no-repeat;
+  opacity:0;transition:opacity .7s ease;
+}
+.hero.loaded::before{opacity:1;}
+.hero::after{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg, rgba(244,241,230,0.68) 0%, rgba(244,241,230,0.90) 60%, rgba(244,241,230,0.97) 100%);
+}
+.hero > *{position:relative;z-index:2;}
+@media (prefers-reduced-motion:reduce){.hero::before{transition:none;}}
 .hero h1{
   font-family:'Frank Ruhl Libre',serif;
   font-weight:900;
@@ -592,6 +604,7 @@ footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:50px;}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="manifest" href="manifest.json">
+<link rel="preload" as="image" href="photos/hero.webp" fetchpriority="high">
 <script>
 // עובד רשת (service worker) לתמיכה חלקית בעבודה אופליין - שומר בקאש את קובץ
 // האתר ואת תמונות האוויר, כדי שחיפוש/מפה/דפי קברים יעבדו גם עם קליטה חלשה/בלי
@@ -3327,6 +3340,13 @@ function showToastMain(msg){
 }
 
 /* ============ INIT ============ */
+(function(){
+  const hero = document.querySelector('.hero');
+  if(!hero) return;
+  const im = new Image();
+  im.onload = ()=> hero.classList.add('loaded');
+  im.src = 'photos/hero.webp';
+})();
 loadGraves().then(()=>{
   // אם המשתמש כבר נמצא במסך המפה כשהנתונים הגיעו, נרענן אותו
   if(document.getElementById('view-map').classList.contains('active')){

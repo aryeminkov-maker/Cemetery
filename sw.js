@@ -4,16 +4,16 @@
 // נתוני הגיבוי המוטמעים בקובץ). בקשות לגיליון החי (Google Apps Script) תמיד
 // יוצאות לרשת בלבד ולא נשמרות בקאש, כדי לא להציג נתונים ישנים בטעות.
 
-const CACHE_NAME = 'beit-el-cemetery-v2';
+const CACHE_NAME = 'beit-el-cemetery-v3';
+// רק קבצי הליבה נשמרים מראש בהתקנה. תצלומי האוויר הגדולים של החלקות לא נטענים
+// כאן (הם היו מתחרים בביקור הראשון בתמונת הרקע ומאטים אותה) - הם נשמרים בקאש
+// אוטומטית בפעם הראשונה שנכנסים לחלקה, ומשם הם זמינים גם בלי אינטרנט.
 const CACHE_FILES = [
   './',
   './beit-el-cemetery.html',
-  './photos/block-a.jpg',
-  './photos/block-b.jpg',
-  './photos/block-c.jpg',
-  './photos/hero.jpg',
-  './photos/cemetery-overview.jpg',
-  './manifest.json'
+  './photos/hero.webp',
+  './manifest.json',
+  './photos/icon-192.png'
 ];
 
 self.addEventListener('install', event => {
